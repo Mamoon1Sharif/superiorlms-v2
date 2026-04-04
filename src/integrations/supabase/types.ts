@@ -213,6 +213,7 @@ export type Database = {
           id: string
           name: string
           status: string
+          user_id: string | null
         }
         Insert: {
           campus_id?: string | null
@@ -221,6 +222,7 @@ export type Database = {
           id?: string
           name: string
           status?: string
+          user_id?: string | null
         }
         Update: {
           campus_id?: string | null
@@ -229,6 +231,7 @@ export type Database = {
           id?: string
           name?: string
           status?: string
+          user_id?: string | null
         }
         Relationships: [
           {
