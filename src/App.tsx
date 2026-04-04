@@ -8,6 +8,8 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import StudentLayout from "@/components/StudentLayout";
 import Dashboard from "@/pages/Dashboard";
 import Courses from "@/pages/Courses";
+import CreateCourse from "@/pages/CreateCourse";
+import EditCourse from "@/pages/EditCourse";
 import UsersPage from "@/pages/UsersPage";
 import Campuses from "@/pages/Campuses";
 import Analytics from "@/pages/Analytics";
