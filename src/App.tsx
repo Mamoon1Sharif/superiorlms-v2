@@ -6,6 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import StudentLayout from "@/components/StudentLayout";
+import TeacherLayout from "@/components/TeacherLayout";
+import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Courses from "@/pages/Courses";
 import CreateCourse from "@/pages/CreateCourse";
@@ -15,10 +17,10 @@ import Campuses from "@/pages/Campuses";
 import Analytics from "@/pages/Analytics";
 import Notifications from "@/pages/Notifications";
 import SettingsPage from "@/pages/SettingsPage";
-import StudentLogin from "@/pages/student/StudentLogin";
 import StudentRegister from "@/pages/student/StudentRegister";
 import StudentDashboard from "@/pages/student/StudentDashboard";
 import StudentCatalog from "@/pages/student/StudentCatalog";
+import TeacherDashboard from "@/pages/teacher/TeacherDashboard";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +33,9 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            {/* Login */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/student/register" element={<StudentRegister />} />
             {/* Admin routes */}
             <Route element={<DashboardLayout />}>
               <Route path="/" element={<Dashboard />} />
@@ -43,10 +48,11 @@ const App = () => (
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>
-            {/* Student auth */}
-            <Route path="/student/login" element={<StudentLogin />} />
-            <Route path="/student/register" element={<StudentRegister />} />
-            {/* Student portal (protected) */}
+            {/* Teacher routes */}
+            <Route element={<TeacherLayout />}>
+              <Route path="/teacher" element={<TeacherDashboard />} />
+            </Route>
+            {/* Student portal */}
             <Route element={<StudentLayout />}>
               <Route path="/student" element={<StudentDashboard />} />
               <Route path="/student/catalog" element={<StudentCatalog />} />

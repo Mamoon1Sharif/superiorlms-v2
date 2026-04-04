@@ -10,7 +10,7 @@ export default function StudentLayout() {
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate("/student/login");
+      navigate("/login");
     }
   }, [user, loading, navigate]);
 
