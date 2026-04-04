@@ -1,24 +1,48 @@
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area } from "recharts";
 
-const monthlyEnrollments = [
-  { month: "Jan", enrollments: 120 }, { month: "Feb", enrollments: 180 },
-  { month: "Mar", enrollments: 240 }, { month: "Apr", enrollments: 310 },
-  { month: "May", enrollments: 280 }, { month: "Jun", enrollments: 390 },
-];
-
-const quizPerformance = [
-  { campus: "Lahore", avgScore: 78 }, { campus: "Karachi", avgScore: 72 },
-  { campus: "Islamabad", avgScore: 81 }, { campus: "Faisalabad", avgScore: 69 },
-  { campus: "Rawalpindi", avgScore: 74 },
-];
-
-const completionTrend = [
-  { week: "W1", rate: 45 }, { week: "W2", rate: 52 }, { week: "W3", rate: 58 },
-  { week: "W4", rate: 63 }, { week: "W5", rate: 70 }, { week: "W6", rate: 78 },
-];
-
 export default function Analytics() {
+  const { data: campuses } = useQuery({
+    queryKey: ["campuses"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("campuses").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: enrollments } = useQuery({
+    queryKey: ["enrollments-analytics"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("enrollments").select("*, students(campus_id)");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Avg progress by campus
+  const campusPerformance = (campuses ?? []).map((c) => {
+    const campusEnrollments = (enrollments ?? []).filter((e: any) => e.students?.campus_id === c.id);
+    const avg = campusEnrollments.length > 0
+      ? Math.round(campusEnrollments.reduce((s, e) => s + e.progress, 0) / campusEnrollments.length)
+      : 0;
+    return { campus: c.city, avgProgress: avg };
+  });
+
+  // Enrollment counts by campus
+  const enrollmentByCampus = (campuses ?? []).map((c) => ({
+    campus: c.city,
+    enrollments: (enrollments ?? []).filter((e: any) => e.students?.campus_id === c.id).length,
+  }));
+
+  // Status distribution
+  const statusCounts = ["Approved", "Pending", "Rejected"].map((s) => ({
+    status: s,
+    count: (enrollments ?? []).filter((e) => e.status === s).length,
+  }));
+
   return (
     <div className="space-y-6">
       <div>
@@ -28,46 +52,46 @@ export default function Analytics() {
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle className="text-base">Monthly Enrollments</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">Enrollments by Campus</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={260}>
-              <AreaChart data={monthlyEnrollments}>
+              <BarChart data={enrollmentByCampus}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 20%, 90%)" />
-                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                <XAxis dataKey="campus" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip />
-                <Area type="monotone" dataKey="enrollments" fill="hsl(199, 89%, 38%, 0.15)" stroke="hsl(199, 89%, 38%)" strokeWidth={2} />
-              </AreaChart>
+                <Bar dataKey="enrollments" fill="hsl(199, 89%, 38%)" radius={[6, 6, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="text-base">Avg Quiz Score by Campus</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">Avg Progress by Campus</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={quizPerformance}>
+              <BarChart data={campusPerformance}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 20%, 90%)" />
                 <XAxis dataKey="campus" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} domain={[0, 100]} />
                 <Tooltip />
-                <Bar dataKey="avgScore" fill="hsl(168, 71%, 39%)" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="avgProgress" fill="hsl(168, 71%, 39%)" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
         <Card className="lg:col-span-2">
-          <CardHeader><CardTitle className="text-base">Completion Rate Trend</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">Enrollment Status Distribution</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={completionTrend}>
+              <BarChart data={statusCounts}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 20%, 90%)" />
-                <XAxis dataKey="week" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} domain={[0, 100]} />
+                <XAxis dataKey="status" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip />
-                <Line type="monotone" dataKey="rate" stroke="hsl(262, 52%, 47%)" strokeWidth={2} dot={{ fill: "hsl(262, 52%, 47%)" }} />
-              </LineChart>
+                <Bar dataKey="count" fill="hsl(262, 52%, 47%)" radius={[6, 6, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>

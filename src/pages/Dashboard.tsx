@@ -1,30 +1,10 @@
-import { Users, BookOpen, Building2, TrendingUp, GraduationCap, CheckCircle2, Clock, FileText } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Users, BookOpen, Building2, TrendingUp } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-
-const enrollmentData = [
-  { campus: "Lahore", students: 1240 },
-  { campus: "Karachi", students: 980 },
-  { campus: "Islamabad", students: 760 },
-  { campus: "Faisalabad", students: 540 },
-  { campus: "Rawalpindi", students: 420 },
-];
-
-const courseProgress = [
-  { name: "Completed", value: 45, color: "hsl(152, 60%, 42%)" },
-  { name: "In Progress", value: 35, color: "hsl(199, 89%, 38%)" },
-  { name: "Not Started", value: 20, color: "hsl(210, 16%, 82%)" },
-];
-
-const recentEnrollments = [
-  { name: "Ahmed Hassan", course: "Web Development", campus: "Lahore", status: "Pending" },
-  { name: "Sara Khan", course: "Data Science", campus: "Karachi", status: "Approved" },
-  { name: "Usman Ali", course: "Mobile App Dev", campus: "Islamabad", status: "Approved" },
-  { name: "Fatima Noor", course: "AI & ML", campus: "Faisalabad", status: "Pending" },
-  { name: "Bilal Mahmood", course: "Cybersecurity", campus: "Rawalpindi", status: "Rejected" },
-];
+import { Skeleton } from "@/components/ui/skeleton";
 
 const statusColor: Record<string, string> = {
   Pending: "bg-warning/15 text-warning border-warning/20",
@@ -33,30 +13,88 @@ const statusColor: Record<string, string> = {
 };
 
 export default function Dashboard() {
+  const { data: campuses } = useQuery({
+    queryKey: ["campuses"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("campuses").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: students } = useQuery({
+    queryKey: ["students"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("students").select("*, campuses(name)");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: courses } = useQuery({
+    queryKey: ["courses"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("courses").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: enrollments } = useQuery({
+    queryKey: ["enrollments"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("enrollments").select("*, students(name, campuses(name)), courses(title)");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const totalStudents = students?.length ?? 0;
+  const publishedCourses = courses?.filter((c) => c.status === "Published").length ?? 0;
+  const totalCampuses = campuses?.length ?? 0;
+  const approvedEnrollments = enrollments?.filter((e) => e.status === "Approved") ?? [];
+  const avgProgress = approvedEnrollments.length > 0
+    ? Math.round(approvedEnrollments.reduce((sum, e) => sum + e.progress, 0) / approvedEnrollments.length)
+    : 0;
+
+  // Enrollments by campus
+  const campusEnrollments = campuses?.map((c) => ({
+    campus: c.city,
+    students: students?.filter((s) => s.campus_id === c.id).length ?? 0,
+  })) ?? [];
+
+  // Progress distribution
+  const completed = approvedEnrollments.filter((e) => e.progress >= 100).length;
+  const inProgress = approvedEnrollments.filter((e) => e.progress > 0 && e.progress < 100).length;
+  const notStarted = approvedEnrollments.filter((e) => e.progress === 0).length;
+  const courseProgress = [
+    { name: "Completed", value: completed || 1, color: "hsl(152, 60%, 42%)" },
+    { name: "In Progress", value: inProgress || 1, color: "hsl(199, 89%, 38%)" },
+    { name: "Not Started", value: notStarted || 1, color: "hsl(210, 16%, 82%)" },
+  ];
+
+  const recentEnrollments = enrollments?.slice(0, 5) ?? [];
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Overview of your education network
-        </p>
+        <p className="text-muted-foreground text-sm mt-1">Overview of your education network</p>
       </div>
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Total Students" value="3,940" change="+12% this month" changeType="positive" icon={Users} />
-        <StatCard title="Active Courses" value="24" change="+3 new courses" changeType="positive" icon={BookOpen} iconColor="bg-accent/10 text-accent" />
-        <StatCard title="Campuses" value="5" change="All operational" changeType="neutral" icon={Building2} iconColor="bg-warning/10 text-warning" />
-        <StatCard title="Completion Rate" value="78%" change="+5% vs last quarter" changeType="positive" icon={TrendingUp} iconColor="bg-success/10 text-success" />
+        <StatCard title="Total Students" value={totalStudents} icon={Users} />
+        <StatCard title="Active Courses" value={publishedCourses} icon={BookOpen} iconColor="bg-accent/10 text-accent" />
+        <StatCard title="Campuses" value={totalCampuses} icon={Building2} iconColor="bg-warning/10 text-warning" />
+        <StatCard title="Avg. Progress" value={`${avgProgress}%`} icon={TrendingUp} iconColor="bg-success/10 text-success" />
       </div>
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base">Enrollments by Campus</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="text-base">Students by Campus</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={enrollmentData}>
+              <BarChart data={campusEnrollments}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 20%, 90%)" />
                 <XAxis dataKey="campus" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} />
@@ -68,9 +106,7 @@ export default function Dashboard() {
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Course Progress</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="text-base">Enrollment Progress</CardTitle></CardHeader>
           <CardContent className="flex flex-col items-center">
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
@@ -94,9 +130,7 @@ export default function Dashboard() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Recent Enrollments</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle className="text-base">Recent Enrollments</CardTitle></CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -109,11 +143,11 @@ export default function Dashboard() {
                 </tr>
               </thead>
               <tbody>
-                {recentEnrollments.map((e, i) => (
-                  <tr key={i} className="border-b last:border-0">
-                    <td className="py-3 px-2 font-medium">{e.name}</td>
-                    <td className="py-3 px-2 text-muted-foreground">{e.course}</td>
-                    <td className="py-3 px-2 text-muted-foreground">{e.campus}</td>
+                {recentEnrollments.map((e) => (
+                  <tr key={e.id} className="border-b last:border-0">
+                    <td className="py-3 px-2 font-medium">{(e.students as any)?.name}</td>
+                    <td className="py-3 px-2 text-muted-foreground">{(e.courses as any)?.title}</td>
+                    <td className="py-3 px-2 text-muted-foreground">{(e.students as any)?.campuses?.name}</td>
                     <td className="py-3 px-2">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${statusColor[e.status]}`}>
                         {e.status}
