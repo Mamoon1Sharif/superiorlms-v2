@@ -115,6 +115,11 @@ export default function Login() {
               Register here
             </a>
           </p>
+          <div className="mt-3">
+            <a href="/student/register">
+              <Button variant="outline" className="w-full">Student Registration</Button>
+            </a>
+          </div>
         </CardContent>
       </Card>
     </div>
