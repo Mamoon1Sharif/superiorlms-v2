@@ -25,21 +25,36 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 1. Invite the user via Supabase Auth (sends confirmation email)
+    // 1. Try to invite the user via Supabase Auth
     const origin = req.headers.get("origin") || "https://superiorlms.lovable.app";
+    let userId: string;
+
     const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
       data: { full_name: name, role: "teacher" },
       redirectTo: `${origin}/teacher/setup`,
     });
 
     if (inviteError) {
-      return new Response(JSON.stringify({ error: inviteError.message }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      // If user already exists, look up their ID and proceed
+      if (inviteError.message.includes("already been registered")) {
+        const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+        const existingUser = users?.find((u: any) => u.email === email);
+        if (!existingUser) {
+          return new Response(JSON.stringify({ error: "User exists but could not be found" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        userId = existingUser.id;
+      } else {
+        return new Response(JSON.stringify({ error: inviteError.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } else {
+      userId = inviteData.user.id;
     }
-
-    const userId = inviteData.user.id;
 
     // 2. Assign the teacher role
     await supabaseAdmin.from("user_roles").insert({ user_id: userId, role: "teacher" });
