@@ -34,15 +34,21 @@ export default function StudentRegister() {
   const { data: campuses } = useQuery({
     queryKey: ["campuses", regionId],
     queryFn: async () => {
-      let query = supabase.from("campuses").select("id, name, city, region_id");
-      if (regionId) {
-        query = query.eq("region_id", regionId);
-      }
-      const { data, error } = await query.order("name");
+      const { data, error } = await supabase.from("campuses").select("id, name, city, region_id").eq("region_id", regionId).order("name");
       if (error) throw error;
       return data;
     },
     enabled: !!regionId,
+  });
+
+  const { data: classes } = useQuery({
+    queryKey: ["classes-by-campus-reg", campusId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("classes").select("id, name").eq("campus_id", campusId).order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!campusId,
   });
 
   const handleRegionChange = (value: string) => {
