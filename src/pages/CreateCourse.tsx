@@ -28,6 +28,7 @@ interface AssignmentDetail {
   instructions: string;
   deadline: string;
   max_marks: number;
+  max_file_size_mb: number;
 }
 
 interface ModuleData {
@@ -40,7 +41,7 @@ interface ModuleData {
 
 const emptyVideo = (): VideoLesson => ({ title: "", description: "", youtube_url: "" });
 const emptyQuestion = (): QuizQuestion => ({ question: "", options: ["", "", "", ""], correct_answer: 0 });
-const emptyAssignment = (): AssignmentDetail => ({ instructions: "", deadline: "", max_marks: 100 });
+const emptyAssignment = (): AssignmentDetail => ({ instructions: "", deadline: "", max_marks: 100, max_file_size_mb: 10 });
 const emptyModule = (type: "video" | "quiz" | "assignment"): ModuleData => ({
   title: "",
   type,
@@ -193,6 +194,7 @@ export default function CreateCourse() {
             instructions: mod.assignment.instructions,
             deadline: mod.assignment.deadline || null,
             max_marks: mod.assignment.max_marks,
+            max_file_size_mb: mod.assignment.max_file_size_mb,
           });
         }
       }
@@ -379,7 +381,7 @@ export default function CreateCourse() {
                       rows={3}
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-3 gap-3">
                     <div className="space-y-2">
                       <Label className="text-xs">Deadline</Label>
                       <Input
@@ -394,6 +396,14 @@ export default function CreateCourse() {
                         type="number"
                         value={mod.assignment.max_marks}
                         onChange={(e) => updateModule(modIdx, { assignment: { ...mod.assignment, max_marks: parseInt(e.target.value) || 0 } })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs">Max File Size (MB)</Label>
+                      <Input
+                        type="number"
+                        value={mod.assignment.max_file_size_mb}
+                        onChange={(e) => updateModule(modIdx, { assignment: { ...mod.assignment, max_file_size_mb: parseInt(e.target.value) || 10 } })}
                       />
                     </div>
                   </div>

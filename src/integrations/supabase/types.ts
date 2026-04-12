@@ -20,6 +20,7 @@ export type Database = {
           deadline: string | null
           id: string
           instructions: string
+          max_file_size_mb: number
           max_marks: number
           module_id: string
         }
@@ -28,6 +29,7 @@ export type Database = {
           deadline?: string | null
           id?: string
           instructions: string
+          max_file_size_mb?: number
           max_marks?: number
           module_id: string
         }
@@ -36,6 +38,7 @@ export type Database = {
           deadline?: string | null
           id?: string
           instructions?: string
+          max_file_size_mb?: number
           max_marks?: number
           module_id?: string
         }
@@ -53,6 +56,8 @@ export type Database = {
         Row: {
           assignment_id: string
           created_at: string
+          file_name: string | null
+          file_url: string | null
           grade: number | null
           graded: boolean
           id: string
@@ -63,6 +68,8 @@ export type Database = {
         Insert: {
           assignment_id: string
           created_at?: string
+          file_name?: string | null
+          file_url?: string | null
           grade?: number | null
           graded?: boolean
           id?: string
@@ -73,6 +80,8 @@ export type Database = {
         Update: {
           assignment_id?: string
           created_at?: string
+          file_name?: string | null
+          file_url?: string | null
           grade?: number | null
           graded?: boolean
           id?: string
