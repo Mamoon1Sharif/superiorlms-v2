@@ -84,6 +84,7 @@ export default function StudentRegister() {
           last_name: lastName,
           phone,
           campus_id: campusId,
+          class_id: classId || null,
         },
       },
     });
@@ -145,7 +146,7 @@ export default function StudentRegister() {
             </div>
             <div className="space-y-2">
               <Label>Campus</Label>
-              <Select value={campusId} onValueChange={setCampusId} disabled={!regionId}>
+              <Select value={campusId} onValueChange={handleCampusChange} disabled={!regionId}>
                 <SelectTrigger><SelectValue placeholder={regionId ? "Select your campus" : "Select a region first"} /></SelectTrigger>
                 <SelectContent>
                   {(campuses ?? []).map((c) => (
