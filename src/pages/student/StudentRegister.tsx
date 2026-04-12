@@ -54,6 +54,12 @@ export default function StudentRegister() {
   const handleRegionChange = (value: string) => {
     setRegionId(value);
     setCampusId("");
+    setClassId("");
+  };
+
+  const handleCampusChange = (value: string) => {
+    setCampusId(value);
+    setClassId("");
   };
 
   const handleRegister = async (e: React.FormEvent) => {
