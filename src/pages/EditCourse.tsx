@@ -13,7 +13,7 @@ import { toast } from "sonner";
 
 interface VideoLesson { title: string; description: string; youtube_url: string; }
 interface QuizQuestion { question: string; options: string[]; correct_answer: number; }
-interface AssignmentDetail { instructions: string; deadline: string; max_marks: number; }
+interface AssignmentDetail { instructions: string; deadline: string; max_marks: number; max_file_size_mb: number; }
 interface ModuleData {
   id?: string;
   title: string;
@@ -25,7 +25,7 @@ interface ModuleData {
 
 const emptyVideo = (): VideoLesson => ({ title: "", description: "", youtube_url: "" });
 const emptyQuestion = (): QuizQuestion => ({ question: "", options: ["", "", "", ""], correct_answer: 0 });
-const emptyAssignment = (): AssignmentDetail => ({ instructions: "", deadline: "", max_marks: 100 });
+const emptyAssignment = (): AssignmentDetail => ({ instructions: "", deadline: "", max_marks: 100, max_file_size_mb: 10 });
 
 export default function EditCourse() {
   const { id } = useParams();
