@@ -19,6 +19,7 @@ export default function StudentRegister() {
   const [password, setPassword] = useState("");
   const [regionId, setRegionId] = useState("");
   const [campusId, setCampusId] = useState("");
+  const [classId, setClassId] = useState("");
   const [loading, setLoading] = useState(false);
 
   const { data: regions } = useQuery({
