@@ -33,14 +33,23 @@ export default function TeacherStudents() {
   });
 
   const assignedClassIds = classAssignments?.map((a: any) => a.class_id) ?? [];
+  const assignedCampusIds = [...new Set(classAssignments?.map((a: any) => a.classes?.campus_id).filter(Boolean) ?? [])];
 
   const { data: students } = useQuery({
-    queryKey: ["my-students", assignedClassIds],
+    queryKey: ["my-students", assignedClassIds, assignedCampusIds],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Get students that either match the class OR belong to the same campus(es)
+      let query = supabase
         .from("students")
-        .select("*, classes(name), campuses(name)")
-        .in("class_id", assignedClassIds);
+        .select("*, classes(name), campuses(name)");
+      
+      if (assignedClassIds.length > 0 && assignedCampusIds.length > 0) {
+        query = query.or(`class_id.in.(${assignedClassIds.join(",")}),and(class_id.is.null,campus_id.in.(${assignedCampusIds.join(",")}))`);
+      } else if (assignedClassIds.length > 0) {
+        query = query.in("class_id", assignedClassIds);
+      }
+      
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
