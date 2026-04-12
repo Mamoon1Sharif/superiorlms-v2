@@ -88,6 +88,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          region_id: string | null
           status: string
           updated_at: string
         }
@@ -96,6 +97,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          region_id?: string | null
           status?: string
           updated_at?: string
         }
@@ -104,10 +106,48 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          region_id?: string | null
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "campuses_region_id_fkey"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "regions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      classes: {
+        Row: {
+          campus_id: string
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          campus_id: string
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          campus_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classes_campus_id_fkey"
+            columns: ["campus_id"]
+            isOneToOne: false
+            referencedRelation: "campuses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       course_campuses: {
         Row: {
@@ -379,6 +419,24 @@ export type Database = {
           },
         ]
       }
+      regions: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       student_progress: {
         Row: {
           completed: boolean
@@ -418,28 +476,40 @@ export type Database = {
       students: {
         Row: {
           campus_id: string | null
+          class_id: string | null
           created_at: string
           email: string
+          first_name: string | null
           id: string
+          last_name: string | null
           name: string
+          phone: string | null
           status: string
           user_id: string | null
         }
         Insert: {
           campus_id?: string | null
+          class_id?: string | null
           created_at?: string
           email: string
+          first_name?: string | null
           id?: string
+          last_name?: string | null
           name: string
+          phone?: string | null
           status?: string
           user_id?: string | null
         }
         Update: {
           campus_id?: string | null
+          class_id?: string | null
           created_at?: string
           email?: string
+          first_name?: string | null
           id?: string
+          last_name?: string | null
           name?: string
+          phone?: string | null
           status?: string
           user_id?: string | null
         }
@@ -449,6 +519,13 @@ export type Database = {
             columns: ["campus_id"]
             isOneToOne: false
             referencedRelation: "campuses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "students_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
             referencedColumns: ["id"]
           },
         ]

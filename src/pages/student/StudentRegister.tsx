@@ -7,25 +7,47 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function StudentRegister() {
   const navigate = useNavigate();
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [regionId, setRegionId] = useState("");
   const [campusId, setCampusId] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const { data: campuses } = useQuery({
-    queryKey: ["campuses"],
+  const { data: regions } = useQuery({
+    queryKey: ["regions"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("campuses").select("id, name, city");
+      const { data, error } = await supabase.from("regions").select("id, name").order("name");
       if (error) throw error;
       return data;
     },
   });
+
+  const { data: campuses } = useQuery({
+    queryKey: ["campuses", regionId],
+    queryFn: async () => {
+      let query = supabase.from("campuses").select("id, name, city, region_id");
+      if (regionId) {
+        query = query.eq("region_id", regionId);
+      }
+      const { data, error } = await query.order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!regionId,
+  });
+
+  const handleRegionChange = (value: string) => {
+    setRegionId(value);
+    setCampusId("");
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,20 +55,31 @@ export default function StudentRegister() {
       toast.error("Please select a campus");
       return;
     }
+    if (!regionId) {
+      toast.error("Please select a region");
+      return;
+    }
     setLoading(true);
+    const fullName = `${firstName} ${lastName}`.trim();
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { full_name: fullName, campus_id: campusId },
+        data: {
+          full_name: fullName,
+          first_name: firstName,
+          last_name: lastName,
+          phone,
+          campus_id: campusId,
+        },
       },
     });
     setLoading(false);
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("Registration successful!");
-      navigate("/student");
+      toast.success("Registration successful! Please check your email to verify your account.");
+      navigate("/login");
     }
   };
 
@@ -64,9 +97,19 @@ export default function StudentRegister() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleRegister} className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>First Name</Label>
+                <Input required value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Ahmed" />
+              </div>
+              <div className="space-y-2">
+                <Label>Last Name</Label>
+                <Input required value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Hassan" />
+              </div>
+            </div>
             <div className="space-y-2">
-              <Label>Full Name</Label>
-              <Input required value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Ahmed Hassan" />
+              <Label>Phone Number</Label>
+              <Input required type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="03001234567" />
             </div>
             <div className="space-y-2">
               <Label>Email</Label>
@@ -77,9 +120,20 @@ export default function StudentRegister() {
               <Input required type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" minLength={6} />
             </div>
             <div className="space-y-2">
+              <Label>Region</Label>
+              <Select value={regionId} onValueChange={handleRegionChange}>
+                <SelectTrigger><SelectValue placeholder="Select your region" /></SelectTrigger>
+                <SelectContent>
+                  {(regions ?? []).map((r) => (
+                    <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label>Campus</Label>
-              <Select value={campusId} onValueChange={setCampusId}>
-                <SelectTrigger><SelectValue placeholder="Select your campus" /></SelectTrigger>
+              <Select value={campusId} onValueChange={setCampusId} disabled={!regionId}>
+                <SelectTrigger><SelectValue placeholder={regionId ? "Select your campus" : "Select a region first"} /></SelectTrigger>
                 <SelectContent>
                   {(campuses ?? []).map((c) => (
                     <SelectItem key={c.id} value={c.id}>{c.name} — {c.city}</SelectItem>
@@ -88,11 +142,11 @@ export default function StudentRegister() {
               </Select>
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Creating account..." : "Sign Up"}
+              {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating account...</> : "Sign Up"}
             </Button>
           </form>
           <p className="text-sm text-center text-muted-foreground mt-4">
-            Already have an account? <Link to="/student/login" className="text-primary font-medium hover:underline">Sign in</Link>
+            Already have an account? <Link to="/login" className="text-primary font-medium hover:underline">Sign in</Link>
           </p>
         </CardContent>
       </Card>
