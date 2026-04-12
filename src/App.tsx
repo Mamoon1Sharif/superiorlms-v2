@@ -23,6 +23,8 @@ import StudentDashboard from "@/pages/student/StudentDashboard";
 import StudentCatalog from "@/pages/student/StudentCatalog";
 import StudentCourseView from "@/pages/student/StudentCourseView";
 import TeacherDashboard from "@/pages/teacher/TeacherDashboard";
+import TeacherStudents from "@/pages/teacher/TeacherStudents";
+import TeacherGrading from "@/pages/teacher/TeacherGrading";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
