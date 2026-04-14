@@ -1,18 +1,53 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { GraduationCap, Loader2 } from "lucide-react";
+import { GraduationCap, Loader2, BookOpen, Users, Award } from "lucide-react";
 import { toast } from "sonner";
+
+const quotes = [
+  { text: "Education is the most powerful weapon which you can use to change the world.", author: "Nelson Mandela" },
+  { text: "The beautiful thing about learning is that nobody can take it away from you.", author: "B.B. King" },
+  { text: "An investment in knowledge pays the best interest.", author: "Benjamin Franklin" },
+  { text: "The roots of education are bitter, but the fruit is sweet.", author: "Aristotle" },
+];
 
 export default function Login() {
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [quoteIndex] = useState(() => Math.floor(Math.random() * quotes.length));
+
+  // If already logged in, redirect based on role
+  useEffect(() => {
+    if (authLoading || !user) return;
+
+    const redirect = async () => {
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (roleData?.role === "admin") { navigate("/", { replace: true }); return; }
+      if (roleData?.role === "teacher") { navigate("/teacher", { replace: true }); return; }
+
+      const { data: studentData } = await supabase
+        .from("students")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (studentData) { navigate("/student", { replace: true }); return; }
+    };
+    redirect();
+  }, [user, authLoading, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,95 +68,168 @@ export default function Login() {
       return;
     }
 
-    // Check role in user_roles table
     const { data: roleData } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", userId)
       .maybeSingle();
 
-    if (roleData?.role === "admin") {
-      navigate("/");
-      setLoading(false);
-      return;
-    }
+    if (roleData?.role === "admin") { navigate("/"); setLoading(false); return; }
+    if (roleData?.role === "teacher") { navigate("/teacher"); setLoading(false); return; }
 
-    if (roleData?.role === "teacher") {
-      navigate("/teacher");
-      setLoading(false);
-      return;
-    }
-
-    // Check if student
     const { data: studentData } = await supabase
       .from("students")
       .select("id")
       .eq("user_id", userId)
       .maybeSingle();
 
-    if (studentData) {
-      navigate("/student");
-      setLoading(false);
-      return;
-    }
+    if (studentData) { navigate("/student"); setLoading(false); return; }
 
-    // Default fallback - no role found
     toast.error("No role assigned to this account. Contact admin.");
     await supabase.auth.signOut();
     setLoading(false);
   };
 
+  const quote = quotes[quoteIndex];
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-3">
-            <div className="h-14 w-14 rounded-xl bg-primary flex items-center justify-center">
-              <GraduationCap className="h-7 w-7 text-primary-foreground" />
+    <div className="min-h-screen flex">
+      {/* Left panel - decorative */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-primary">
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-accent/40" />
+        
+        {/* Decorative shapes */}
+        <div className="absolute top-20 left-10 w-64 h-64 rounded-full bg-white/5 blur-xl" />
+        <div className="absolute bottom-32 right-16 w-96 h-96 rounded-full bg-accent/10 blur-2xl" />
+        <div className="absolute top-1/2 left-1/3 w-48 h-48 rounded-full bg-white/5 blur-lg" />
+
+        {/* Content */}
+        <div className="relative z-10 flex flex-col justify-between p-12 text-primary-foreground">
+          <div className="flex items-center gap-3">
+            <div className="h-11 w-11 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center">
+              <GraduationCap className="h-6 w-6" />
+            </div>
+            <div>
+              <h2 className="font-bold text-lg tracking-tight">Superior Group</h2>
+              <p className="text-xs text-white/70">of Colleges</p>
             </div>
           </div>
-          <CardTitle className="text-2xl">EduAdmin LMS</CardTitle>
-          <CardDescription>Sign in to your account</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input
-                required
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-              />
+
+          <div className="space-y-8">
+            <blockquote className="space-y-4">
+              <p className="text-2xl font-semibold leading-relaxed italic">
+                "{quote.text}"
+              </p>
+              <footer className="text-sm text-white/70 font-medium">
+                — {quote.author}
+              </footer>
+            </blockquote>
+
+            <div className="grid grid-cols-3 gap-4 pt-6 border-t border-white/15">
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-white/60" />
+                <div>
+                  <p className="text-xl font-bold">50+</p>
+                  <p className="text-xs text-white/60">Courses</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-white/60" />
+                <div>
+                  <p className="text-xl font-bold">5000+</p>
+                  <p className="text-xs text-white/60">Students</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Award className="h-5 w-5 text-white/60" />
+                <div>
+                  <p className="text-xl font-bold">20+</p>
+                  <p className="text-xs text-white/60">Campuses</p>
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Password</Label>
-              <Input
-                required
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Signing in...</> : "Sign In"}
-            </Button>
-          </form>
-          <p className="text-sm text-center text-muted-foreground mt-4">
-            Student?{" "}
-            <a href="/student/register" className="text-primary font-medium hover:underline">
-              Register here
-            </a>
+          </div>
+
+          <p className="text-xs text-white/40">
+            © {new Date().getFullYear()} Superior Group of Colleges. All rights reserved.
           </p>
-          <div className="mt-3">
-            <a href="/student/register">
-              <Button variant="outline" className="w-full">Student Registration</Button>
-            </a>
+        </div>
+      </div>
+
+      {/* Right panel - login form */}
+      <div className="flex-1 flex items-center justify-center bg-background p-6">
+        <div className="w-full max-w-md space-y-8">
+          {/* Mobile logo */}
+          <div className="lg:hidden flex items-center justify-center gap-3 mb-4">
+            <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center">
+              <GraduationCap className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <div>
+              <h2 className="font-bold text-lg text-foreground">Superior Group</h2>
+              <p className="text-xs text-muted-foreground">of Colleges</p>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+
+          <Card className="border-0 shadow-xl shadow-primary/5">
+            <CardHeader className="text-center pb-2">
+              <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
+              <CardDescription className="text-base">
+                Sign in to your learning management system
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <form onSubmit={handleLogin} className="space-y-5">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Email Address</Label>
+                  <Input
+                    required
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="h-11"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Password</Label>
+                  <Input
+                    required
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="h-11"
+                  />
+                </div>
+                <Button type="submit" className="w-full h-11 text-base font-semibold" disabled={loading}>
+                  {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Signing in...</> : "Sign In"}
+                </Button>
+              </form>
+
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-border" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">New student?</span>
+                </div>
+              </div>
+
+              <a href="/student/register">
+                <Button variant="outline" className="w-full h-11">
+                  <GraduationCap className="h-4 w-4 mr-2" />
+                  Student Registration
+                </Button>
+              </a>
+            </CardContent>
+          </Card>
+
+          <p className="text-xs text-center text-muted-foreground">
+            Admins, teachers and students all sign in here.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
