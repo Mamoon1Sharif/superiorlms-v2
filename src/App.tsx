@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import StudentLayout from "@/components/StudentLayout";
 import TeacherLayout from "@/components/TeacherLayout";
+import RoleGuard from "@/components/guards/RoleGuard";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Courses from "@/pages/Courses";
@@ -40,12 +41,13 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* Login */}
+            {/* Public routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/teacher/setup" element={<TeacherSetup />} />
             <Route path="/student/register" element={<StudentRegister />} />
+
             {/* Admin routes */}
-            <Route element={<DashboardLayout />}>
+            <Route element={<RoleGuard allowedRoles={["admin"]}><DashboardLayout /></RoleGuard>}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/courses" element={<Courses />} />
               <Route path="/courses/create" element={<CreateCourse />} />
@@ -57,18 +59,21 @@ const App = () => (
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>
+
             {/* Teacher routes */}
-            <Route element={<TeacherLayout />}>
+            <Route element={<RoleGuard allowedRoles={["teacher"]}><TeacherLayout /></RoleGuard>}>
               <Route path="/teacher" element={<TeacherDashboard />} />
               <Route path="/teacher/students" element={<TeacherStudents />} />
               <Route path="/teacher/grading" element={<TeacherGrading />} />
             </Route>
-            {/* Student portal */}
-            <Route element={<StudentLayout />}>
+
+            {/* Student routes */}
+            <Route element={<RoleGuard allowedRoles={["student"]}><StudentLayout /></RoleGuard>}>
               <Route path="/student" element={<StudentDashboard />} />
               <Route path="/student/catalog" element={<StudentCatalog />} />
               <Route path="/student/course/:courseId" element={<StudentCourseView />} />
             </Route>
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

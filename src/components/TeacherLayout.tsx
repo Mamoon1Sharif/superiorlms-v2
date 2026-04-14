@@ -2,17 +2,10 @@ import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { BookOpen, LayoutDashboard, LogOut, GraduationCap, Users, ClipboardCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useEffect } from "react";
 
 export default function TeacherLayout() {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate("/login");
-    }
-  }, [user, loading, navigate]);
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-background">Loading...</div>;
