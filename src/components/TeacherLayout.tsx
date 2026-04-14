@@ -2,7 +2,6 @@ import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { BookOpen, LayoutDashboard, LogOut, GraduationCap, Users, ClipboardCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useEffect } from "react";
 
 export default function TeacherLayout() {
   const { user, loading, signOut } = useAuth();
