@@ -25,7 +25,7 @@ export default function Courses() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("courses")
-        .select("*, course_campuses(campuses(id, name, city)), modules(id, type)")
+        .select("*, course_campuses(campuses(id, name, city)), modules(id, lessons(id), quiz_questions(id), assignment_details(id))")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -65,20 +65,19 @@ export default function Courses() {
 
   const enriched = (courses ?? []).map((c) => {
     const courseEnrollments = enrollments?.filter((e) => e.course_id === c.id) ?? [];
-    const avgProgress = courseEnrollments.length > 0
-      ? Math.round(courseEnrollments.reduce((s, e) => s + e.progress, 0) / courseEnrollments.length)
-      : 0;
     const campusNames = (c.course_campuses as any[])?.map((cc: any) => cc.campuses?.city).filter(Boolean) ?? [];
     const mods = (c.modules as any[]) ?? [];
+    const videoCount = mods.reduce((s, m) => s + (m.lessons?.length ?? 0), 0);
+    const quizCount = mods.filter((m: any) => (m.quiz_questions?.length ?? 0) > 0).length;
+    const assignmentCount = mods.filter((m: any) => (m.assignment_details?.length ?? 0) > 0).length;
     return {
       ...c,
       studentCount: courseEnrollments.length,
-      avgProgress,
       campusNames,
       moduleCount: mods.length,
-      videoCount: mods.filter((m: any) => m.type === "video").length,
-      quizCount: mods.filter((m: any) => m.type === "quiz").length,
-      assignmentCount: mods.filter((m: any) => m.type === "assignment").length,
+      videoCount,
+      quizCount,
+      assignmentCount,
     };
   });
 
@@ -149,17 +148,6 @@ export default function Courses() {
                   <span className="flex items-center gap-1"><HelpCircle className="h-3 w-3" /> {course.quizCount} Quizzes</span>
                   <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> {course.assignmentCount} Assignments</span>
                 </div>
-                {course.studentCount > 0 && (
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-muted-foreground">Avg. Progress</span>
-                      <span className="font-medium">{course.avgProgress}%</span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-muted">
-                      <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${course.avgProgress}%` }} />
-                    </div>
-                  </div>
-                )}
                 {course.campusNames.length > 0 && (
                   <div className="flex flex-wrap gap-1">
                     {course.campusNames.map((c: string) => (
