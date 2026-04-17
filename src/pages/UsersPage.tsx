@@ -171,19 +171,25 @@ function EditTeacherDialog({ teacher, open, onOpenChange }: { teacher: any; open
       toast.error("Class already assigned");
       return;
     }
-    const { error } = await supabase.from("teacher_class_assignments").insert({ teacher_id: teacher.id, class_id: classId });
-    if (error) { toast.error(error.message); return; }
-    queryClient.invalidateQueries({ queryKey: ["teacher-class-assignments", teacher.id] });
-    queryClient.invalidateQueries({ queryKey: ["teacher-class-assignments-all"] });
+    const { data, error } = await supabase
+      .from("teacher_class_assignments")
+      .insert({ teacher_id: teacher.id, class_id: classId })
+      .select()
+      .single();
+    if (error) { console.error("addClass error:", error); toast.error(error.message); return; }
+    console.log("addClass inserted:", data);
+    await queryClient.invalidateQueries({ queryKey: ["teacher-class-assignments", teacher.id] });
+    await queryClient.invalidateQueries({ queryKey: ["teacher-class-assignments-all"] });
     setClassId("");
     toast.success("Class assigned");
   };
 
   const removeAssignment = async (assignmentId: string) => {
     const { error } = await supabase.from("teacher_class_assignments").delete().eq("id", assignmentId);
-    if (error) { toast.error(error.message); return; }
-    queryClient.invalidateQueries({ queryKey: ["teacher-class-assignments", teacher.id] });
-    queryClient.invalidateQueries({ queryKey: ["teacher-class-assignments-all"] });
+    if (error) { console.error("remove error:", error); toast.error(error.message); return; }
+    await queryClient.invalidateQueries({ queryKey: ["teacher-class-assignments", teacher.id] });
+    await queryClient.invalidateQueries({ queryKey: ["teacher-class-assignments-all"] });
+    toast.success("Class removed");
   };
 
   const handleSave = async () => {
