@@ -119,11 +119,76 @@ function EditTeacherDialog({ teacher, open, onOpenChange }: { teacher: any; open
   const [name, setName] = useState(teacher.name);
   const [email, setEmail] = useState(teacher.email);
   const [status, setStatus] = useState(teacher.status);
+  const [regionId, setRegionId] = useState("");
+  const [campusId, setCampusId] = useState(teacher.campus_id || "");
+  const [classId, setClassId] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const { data: regions } = useQuery({
+    queryKey: ["regions"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("regions").select("*").order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: campuses } = useQuery({
+    queryKey: ["campuses-by-region", regionId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("campuses").select("*").eq("region_id", regionId).order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!regionId,
+  });
+
+  const { data: classes } = useQuery({
+    queryKey: ["classes-by-campus", campusId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("classes").select("*").eq("campus_id", campusId).order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!campusId,
+  });
+
+  const { data: currentAssignments } = useQuery({
+    queryKey: ["teacher-class-assignments", teacher.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("teacher_class_assignments")
+        .select("*, classes(name, campuses(name))")
+        .eq("teacher_id", teacher.id);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const addClass = async () => {
+    if (!classId) return;
+    if (currentAssignments?.some((a) => a.class_id === classId)) {
+      toast.error("Class already assigned");
+      return;
+    }
+    const { error } = await supabase.from("teacher_class_assignments").insert({ teacher_id: teacher.id, class_id: classId });
+    if (error) { toast.error(error.message); return; }
+    queryClient.invalidateQueries({ queryKey: ["teacher-class-assignments", teacher.id] });
+    queryClient.invalidateQueries({ queryKey: ["teacher-class-assignments-all"] });
+    setClassId("");
+    toast.success("Class assigned");
+  };
+
+  const removeAssignment = async (assignmentId: string) => {
+    const { error } = await supabase.from("teacher_class_assignments").delete().eq("id", assignmentId);
+    if (error) { toast.error(error.message); return; }
+    queryClient.invalidateQueries({ queryKey: ["teacher-class-assignments", teacher.id] });
+    queryClient.invalidateQueries({ queryKey: ["teacher-class-assignments-all"] });
+  };
 
   const handleSave = async () => {
     setSaving(true);
-    const { error } = await supabase.from("teachers").update({ name, email, status }).eq("id", teacher.id);
+    const { error } = await supabase.from("teachers").update({ name, email, status, campus_id: campusId || null }).eq("id", teacher.id);
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     queryClient.invalidateQueries({ queryKey: ["teachers"] });
@@ -133,11 +198,13 @@ function EditTeacherDialog({ teacher, open, onOpenChange }: { teacher: any; open
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader><DialogTitle>Edit Teacher</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
-          <div><Label>Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
+            <div><Label>Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+          </div>
           <div>
             <Label>Status</Label>
             <Select value={status} onValueChange={setStatus}>
@@ -148,6 +215,54 @@ function EditTeacherDialog({ teacher, open, onOpenChange }: { teacher: any; open
               </SelectContent>
             </Select>
           </div>
+
+          <div className="border rounded-lg p-3 space-y-3">
+            <p className="text-sm font-medium">Class Assignments</p>
+            {currentAssignments && currentAssignments.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {currentAssignments.map((a: any) => (
+                  <Badge key={a.id} variant="secondary" className="text-xs cursor-pointer" onClick={() => removeAssignment(a.id)}>
+                    {a.classes?.campuses?.name} · {a.classes?.name} ✕
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">No classes assigned</p>
+            )}
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <Label className="text-xs">Region</Label>
+                <Select value={regionId} onValueChange={(v) => { setRegionId(v); setCampusId(""); setClassId(""); }}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Region" /></SelectTrigger>
+                  <SelectContent>
+                    {regions?.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Campus</Label>
+                <Select value={campusId} onValueChange={(v) => { setCampusId(v); setClassId(""); }} disabled={!regionId}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Campus" /></SelectTrigger>
+                  <SelectContent>
+                    {campuses?.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Class</Label>
+                <Select value={classId} onValueChange={setClassId} disabled={!campusId}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Class" /></SelectTrigger>
+                  <SelectContent>
+                    {classes?.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={addClass} disabled={!classId}>
+              <Plus className="h-3.5 w-3.5 mr-1" /> Add Class
+            </Button>
+          </div>
+
           <Button className="w-full" onClick={handleSave} disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
         </div>
       </DialogContent>
