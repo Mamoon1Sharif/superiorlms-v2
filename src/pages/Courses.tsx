@@ -25,7 +25,7 @@ export default function Courses() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("courses")
-        .select("*, course_campuses(campuses(id, name, city)), modules(id, type)")
+        .select("*, course_campuses(campuses(id, name, city)), modules(id, lessons(id), quiz_questions(id), assignment_details(id))")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
