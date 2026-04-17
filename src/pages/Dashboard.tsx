@@ -5,6 +5,12 @@ import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
+const statusColor: Record<string, string> = {
+  Pending: "bg-warning/15 text-warning border-warning/20",
+  Approved: "bg-success/15 text-success border-success/20",
+  Rejected: "bg-destructive/15 text-destructive border-destructive/20",
+};
+
 const useCount = (table: string) =>
   useQuery({
     queryKey: ["count", table],
@@ -14,7 +20,82 @@ const useCount = (table: string) =>
       return count ?? 0;
     },
   });
-...
+
+export default function Dashboard() {
+  const { data: campuses } = useQuery({
+    queryKey: ["campuses"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("campuses").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: students } = useQuery({
+    queryKey: ["students"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("students").select("*, campuses(name)");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: courses } = useQuery({
+    queryKey: ["courses"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("courses").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: enrollments } = useQuery({
+    queryKey: ["enrollments"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("enrollments").select("*, students(name, campuses(name)), courses(title)");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: regionsCount } = useCount("regions");
+  const { data: classesCount } = useCount("classes");
+  const { data: teachersCount } = useCount("teachers");
+  const { data: modulesCount } = useCount("modules");
+  const { data: lessonsCount } = useCount("lessons");
+  const { data: enrollmentsCount } = useCount("enrollments");
+
+  const totalStudents = students?.length ?? 0;
+  const publishedCourses = courses?.filter((c) => c.status === "Published").length ?? 0;
+  const totalCampuses = campuses?.length ?? 0;
+  const approvedEnrollments = enrollments?.filter((e) => e.status === "Approved") ?? [];
+  const avgProgress = approvedEnrollments.length > 0
+    ? Math.round(approvedEnrollments.reduce((sum, e) => sum + e.progress, 0) / approvedEnrollments.length)
+    : 0;
+
+  const campusEnrollments = campuses?.map((c) => ({
+    campus: c.city,
+    students: students?.filter((s) => s.campus_id === c.id).length ?? 0,
+  })) ?? [];
+
+  const completed = approvedEnrollments.filter((e) => e.progress >= 100).length;
+  const inProgress = approvedEnrollments.filter((e) => e.progress > 0 && e.progress < 100).length;
+  const notStarted = approvedEnrollments.filter((e) => e.progress === 0).length;
+  const courseProgress = [
+    { name: "Completed", value: completed || 1, color: "hsl(152, 60%, 42%)" },
+    { name: "In Progress", value: inProgress || 1, color: "hsl(199, 89%, 38%)" },
+    { name: "Not Started", value: notStarted || 1, color: "hsl(210, 16%, 82%)" },
+  ];
+
+  const recentEnrollments = enrollments?.slice(0, 5) ?? [];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-muted-foreground text-sm mt-1">Overview of your education network</p>
+      </div>
+
       <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
         <StatCard title="Regions" value={regionsCount ?? 0} icon={MapPin} iconColor="bg-primary/10 text-primary" />
         <StatCard title="Campuses" value={totalCampuses} icon={Building2} iconColor="bg-warning/10 text-warning" />
