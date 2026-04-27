@@ -125,13 +125,29 @@ export default function CampusAdminStudentDetail() {
           ? Math.min(100, Math.round((completedCount * 100) / totalItems))
           : 0;
 
+        // Build assignment list for this course with submission status
+        const courseAssignments: any[] = [];
+        for (const m of mods) {
+          const aIds = assignmentsByModule[m.id] ?? [];
+          for (const aId of aIds) {
+            const sub = (submissions ?? []).find((s: any) => s.assignment_id === aId);
+            courseAssignments.push({
+              assignment_id: aId,
+              module_title: m.title,
+              submitted: !!sub,
+              graded: sub?.graded ?? false,
+              grade: sub?.grade ?? null,
+            });
+          }
+        }
+
         return {
           id: c.id,
           title: c.title,
           modules: mods,
           progress: percent,
           quizzes: courseQuizzes,
-          submissions: [],
+          assignments: courseAssignments,
           studentProgress: courseProg,
           completedCount,
           totalCount: totalItems,
