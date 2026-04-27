@@ -65,6 +65,15 @@ export default function CampusAdminStudentDetail() {
         .select("module_id, score, max_score, created_at")
         .eq("student_id", studentId!);
 
+      const allAssignmentIds = (assignmentsData ?? []).map((a: any) => a.id);
+      const { data: submissions } = allAssignmentIds.length
+        ? await supabase
+            .from("assignment_submissions")
+            .select("assignment_id, grade, graded, created_at")
+            .eq("student_id", studentId!)
+            .in("assignment_id", allAssignmentIds)
+        : { data: [] as any[] };
+
       const modsByCourse: Record<string, any[]> = {};
       (allMods ?? []).forEach((m) => {
         modsByCourse[m.course_id] = modsByCourse[m.course_id] || [];
