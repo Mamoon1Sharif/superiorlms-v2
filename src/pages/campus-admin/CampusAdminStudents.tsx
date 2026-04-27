@@ -184,10 +184,15 @@ function StudentProgress({ studentId }: { studentId: string }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("enrollments")
-        .select("*, courses(title)")
+        .select("*")
         .eq("student_id", studentId);
       if (error) throw error;
-      return data;
+      const ids = (data ?? []).map((e: any) => e.course_id);
+      if (!ids.length) return [];
+      const { data: courses } = await supabase.from("courses").select("id, title").in("id", ids);
+      const cmap: Record<string, string> = {};
+      (courses ?? []).forEach((c: any) => { cmap[c.id] = c.title; });
+      return (data ?? []).map((e: any) => ({ ...e, course_title: cmap[e.course_id] }));
     },
   });
 
@@ -196,10 +201,15 @@ function StudentProgress({ studentId }: { studentId: string }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("quiz_attempts")
-        .select("score, max_score, modules:module_id(title)")
+        .select("score, max_score, module_id")
         .eq("student_id", studentId);
       if (error) throw error;
-      return data;
+      const ids = Array.from(new Set((data ?? []).map((q: any) => q.module_id)));
+      if (!ids.length) return [];
+      const { data: mods } = await supabase.from("modules").select("id, title").in("id", ids);
+      const mmap: Record<string, string> = {};
+      (mods ?? []).forEach((m: any) => { mmap[m.id] = m.title; });
+      return (data ?? []).map((q: any) => ({ ...q, module_title: mmap[q.module_id] }));
     },
   });
 
