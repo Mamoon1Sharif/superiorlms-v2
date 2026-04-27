@@ -187,12 +187,38 @@ function StudentProgress({ studentId }: { studentId: string }) {
         .select("*")
         .eq("student_id", studentId);
       if (error) throw error;
-      const ids = (data ?? []).map((e: any) => e.course_id);
-      if (!ids.length) return [];
+
+      // Fallback: derive progress from student_progress when no enrollment rows
+      if (!data || data.length === 0) {
+        const { data: prog } = await supabase
+          .from("student_progress")
+          .select("module_id, completed")
+          .eq("student_id", studentId);
+        if (!prog?.length) return [];
+        const moduleIds = Array.from(new Set(prog.map((p: any) => p.module_id)));
+        const { data: mods } = await supabase.from("modules").select("id, course_id").in("id", moduleIds);
+        const courseIds = Array.from(new Set((mods ?? []).map((m: any) => m.course_id)));
+        const { data: courses } = await supabase.from("courses").select("id, title").in("id", courseIds);
+        const { data: allMods } = await supabase.from("modules").select("id, course_id").in("course_id", courseIds);
+        const completedByCourse: Record<string, number> = {};
+        const totalByCourse: Record<string, number> = {};
+        (allMods ?? []).forEach((m: any) => { totalByCourse[m.course_id] = (totalByCourse[m.course_id] || 0) + 1; });
+        (mods ?? []).forEach((m: any) => {
+          const completed = prog.find((p: any) => p.module_id === m.id && p.completed);
+          if (completed) completedByCourse[m.course_id] = (completedByCourse[m.course_id] || 0) + 1;
+        });
+        return (courses ?? []).map((c: any) => ({
+          id: c.id,
+          course_title: c.title,
+          progress: totalByCourse[c.id] ? Math.round((completedByCourse[c.id] || 0) * 100 / totalByCourse[c.id]) : 0,
+        }));
+      }
+
+      const ids = data.map((e: any) => e.course_id);
       const { data: courses } = await supabase.from("courses").select("id, title").in("id", ids);
       const cmap: Record<string, string> = {};
       (courses ?? []).forEach((c: any) => { cmap[c.id] = c.title; });
-      return (data ?? []).map((e: any) => ({ ...e, course_title: cmap[e.course_id] }));
+      return data.map((e: any) => ({ ...e, course_title: cmap[e.course_id] }));
     },
   });
 
