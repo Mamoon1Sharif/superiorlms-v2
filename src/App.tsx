@@ -75,7 +75,7 @@ const App = () => (
             <Route element={<RoleGuard allowedRoles={["campus_admin"]}><CampusAdminLayout /></RoleGuard>}>
               <Route path="/campus-admin" element={<CampusAdminDashboard />} />
               <Route path="/campus-admin/students" element={<CampusAdminStudents />} />
-              <Route path="/campus-admin/enrollments" element={<CampusAdminEnrollments />} />
+              <Route path="/campus-admin/students/:id" element={<CampusAdminStudentDetail />} />
             </Route>
 
             {/* Student routes */}
