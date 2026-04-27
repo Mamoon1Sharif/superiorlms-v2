@@ -494,103 +494,95 @@ function TeacherTable() {
 }
 
 function EnrollmentApprovals() {
-  const queryClient = useQueryClient();
-
-  const { data: enrollments } = useQuery({
-    queryKey: ["pending-enrollments"],
+  const { data: rows, isLoading } = useQuery({
+    queryKey: ["admin-enrollment-stats"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("enrollments")
-        .select("*, students(name, email, campuses(name)), courses(title)")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
+      const [{ data: enrollments, error: eErr }, { data: students, error: sErr }, { data: campuses, error: cErr }] = await Promise.all([
+        supabase.from("enrollments").select("status, student_id"),
+        supabase.from("students").select("id, campus_id"),
+        supabase.from("campuses").select("id, name, city"),
+      ]);
+      if (eErr) throw eErr;
+      if (sErr) throw sErr;
+      if (cErr) throw cErr;
+
+      const studentCampus: Record<string, string | null> = {};
+      (students ?? []).forEach((s: any) => (studentCampus[s.id] = s.campus_id));
+
+      const stats: Record<string, { received: number; approved: number; rejected: number; pending: number }> = {};
+      (campuses ?? []).forEach((c: any) => (stats[c.id] = { received: 0, approved: 0, rejected: 0, pending: 0 }));
+
+      (enrollments ?? []).forEach((e: any) => {
+        const cid = studentCampus[e.student_id];
+        if (!cid || !stats[cid]) return;
+        stats[cid].received += 1;
+        if (e.status === "Approved") stats[cid].approved += 1;
+        else if (e.status === "Rejected") stats[cid].rejected += 1;
+        else stats[cid].pending += 1;
+      });
+
+      return (campuses ?? []).map((c: any) => ({ ...c, ...stats[c.id] }));
     },
   });
 
-  const updateStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await supabase.from("enrollments").update({ status }).eq("id", id);
-      if (error) throw error;
+  const totals = (rows ?? []).reduce(
+    (acc, r: any) => {
+      acc.received += r.received;
+      acc.approved += r.approved;
+      acc.rejected += r.rejected;
+      acc.pending += r.pending;
+      return acc;
     },
-    onSuccess: (_, { status }) => {
-      queryClient.invalidateQueries({ queryKey: ["pending-enrollments"] });
-      toast.success(`Enrollment ${status.toLowerCase()}`);
-    },
-    onError: (err: any) => toast.error(err.message),
-  });
-
-  const pending = enrollments?.filter((e) => e.status === "Pending") ?? [];
-  const processed = enrollments?.filter((e) => e.status !== "Pending") ?? [];
+    { received: 0, approved: 0, rejected: 0, pending: 0 }
+  );
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-sm font-semibold mb-3">Pending Requests ({pending.length})</h3>
-        {pending.length === 0 ? (
-          <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">No pending enrollment requests</CardContent></Card>
-        ) : (
-          <div className="space-y-2">
-            {pending.map((e) => (
-              <Card key={e.id}>
-                <CardContent className="p-4 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <Avatar className="h-9 w-9 shrink-0">
-                      <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                        {(e.students as any)?.name?.split(" ").map((n: string) => n[0]).join("") ?? "?"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0">
-                      <p className="font-medium text-sm truncate">{(e.students as any)?.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {(e.students as any)?.email} · {(e.students as any)?.campuses?.name ?? "No campus"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Badge variant="secondary" className="text-[11px]">{(e.courses as any)?.title}</Badge>
-                    <Button size="sm" variant="default" onClick={() => updateStatus.mutate({ id: e.id, status: "Approved" })} disabled={updateStatus.isPending}>
-                      <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Approve
-                    </Button>
-                    <Button size="sm" variant="destructive" onClick={() => updateStatus.mutate({ id: e.id, status: "Rejected" })} disabled={updateStatus.isPending}>
-                      <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Received</p><p className="text-2xl font-bold mt-1">{totals.received}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Pending</p><p className="text-2xl font-bold mt-1">{totals.pending}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Approved</p><p className="text-2xl font-bold mt-1 text-primary">{totals.approved}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Rejected</p><p className="text-2xl font-bold mt-1 text-destructive">{totals.rejected}</p></CardContent></Card>
       </div>
-      <div>
-        <h3 className="text-sm font-semibold mb-3">Processed ({processed.length})</h3>
-        <Card>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Student</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Course</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {processed.map((e) => (
-                    <tr key={e.id} className="border-b last:border-0 hover:bg-muted/30">
-                      <td className="py-3 px-4 font-medium">{(e.students as any)?.name}</td>
-                      <td className="py-3 px-4 text-muted-foreground">{(e.courses as any)?.title}</td>
-                      <td className="py-3 px-4">
-                        <Badge variant={e.status === "Approved" ? "default" : "destructive"} className="text-[11px]">{e.status}</Badge>
-                      </td>
+
+      <Card>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Campus</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">City</th>
+                  <th className="text-right py-3 px-4 font-medium text-muted-foreground">Received</th>
+                  <th className="text-right py-3 px-4 font-medium text-muted-foreground">Pending</th>
+                  <th className="text-right py-3 px-4 font-medium text-muted-foreground">Approved</th>
+                  <th className="text-right py-3 px-4 font-medium text-muted-foreground">Rejected</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isLoading ? (
+                  <tr><td colSpan={6} className="py-6 text-center text-muted-foreground">Loading...</td></tr>
+                ) : (rows ?? []).length === 0 ? (
+                  <tr><td colSpan={6} className="py-6 text-center text-muted-foreground">No campuses found</td></tr>
+                ) : (
+                  (rows ?? []).map((r: any) => (
+                    <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30">
+                      <td className="py-3 px-4 font-medium">{r.name}</td>
+                      <td className="py-3 px-4 text-muted-foreground">{r.city}</td>
+                      <td className="py-3 px-4 text-right">{r.received}</td>
+                      <td className="py-3 px-4 text-right"><Badge variant="secondary" className="text-[11px]">{r.pending}</Badge></td>
+                      <td className="py-3 px-4 text-right"><Badge className="text-[11px]">{r.approved}</Badge></td>
+                      <td className="py-3 px-4 text-right"><Badge variant="destructive" className="text-[11px]">{r.rejected}</Badge></td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <p className="text-xs text-muted-foreground">Enrollment approvals are managed by Campus Admins for each campus.</p>
     </div>
   );
 }
@@ -775,7 +767,7 @@ export default function UsersPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Users</h1>
-        <p className="text-muted-foreground text-sm mt-1">Manage students, teachers, campus admins, and enrollment approvals</p>
+        <p className="text-muted-foreground text-sm mt-1">Manage students, teachers, campus admins, and view enrollment stats</p>
       </div>
       <Tabs defaultValue="students">
         <TabsList>
