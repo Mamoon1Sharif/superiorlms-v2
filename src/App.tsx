@@ -31,7 +31,7 @@ import TeacherGrading from "@/pages/teacher/TeacherGrading";
 import TeacherSetup from "@/pages/teacher/TeacherSetup";
 import CampusAdminDashboard from "@/pages/campus-admin/CampusAdminDashboard";
 import CampusAdminStudents from "@/pages/campus-admin/CampusAdminStudents";
-import CampusAdminEnrollments from "@/pages/campus-admin/CampusAdminEnrollments";
+import CampusAdminStudentDetail from "@/pages/campus-admin/CampusAdminStudentDetail";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
