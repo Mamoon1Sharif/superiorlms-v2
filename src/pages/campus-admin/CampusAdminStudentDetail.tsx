@@ -27,43 +27,28 @@ export default function CampusAdminStudentDetail() {
   const { data: courseProgress } = useQuery({
     queryKey: ["ca-student-course-progress", studentId],
     queryFn: async () => {
-      // Get all courses available
-      const { data: courses } = await supabase.from("courses").select("id, title, status");
+      // Show all published courses in the program
+      const { data: courses } = await supabase
+        .from("courses")
+        .select("id, title, status")
+        .eq("status", "Published");
       if (!courses?.length) return [];
 
-      // Get all modules grouped by course
       const courseIds = courses.map((c) => c.id);
       const { data: allMods } = await supabase
         .from("modules")
         .select("id, course_id, title, type")
         .in("course_id", courseIds);
 
-      // Get student progress
       const { data: prog } = await supabase
         .from("student_progress")
         .select("module_id, item_id, item_type, completed, score")
         .eq("student_id", studentId!);
 
-      // Get quiz attempts
       const { data: quizzes } = await supabase
         .from("quiz_attempts")
         .select("module_id, score, max_score, created_at")
         .eq("student_id", studentId!);
-
-      // Get assignment submissions joined to modules
-      const { data: subs } = await supabase
-        .from("assignment_submissions")
-        .select("assignment_id, graded, grade, created_at, file_name, submission_text")
-        .eq("student_id", studentId!);
-
-      // Get enrollment for progress %
-      const { data: enrollments } = await supabase
-        .from("enrollments")
-        .select("course_id, progress, status")
-        .eq("student_id", studentId!);
-
-      const enrollMap: Record<string, any> = {};
-      (enrollments ?? []).forEach((e) => { enrollMap[e.course_id] = e; });
 
       const modsByCourse: Record<string, any[]> = {};
       (allMods ?? []).forEach((m) => {
@@ -71,37 +56,33 @@ export default function CampusAdminStudentDetail() {
         modsByCourse[m.course_id].push(m);
       });
 
-      const result = courses
-        .map((c) => {
-          const mods = modsByCourse[c.id] ?? [];
-          if (!mods.length) return null;
-          const moduleIds = mods.map((m) => m.id);
-          const courseProg = (prog ?? []).filter((p) => moduleIds.includes(p.module_id));
-          const courseQuizzes = (quizzes ?? []).filter((q) => moduleIds.includes(q.module_id));
-          const courseSubs = (subs ?? []).filter((s) =>
-            mods.some((m) => m.type === "assignment" && m.id) // we'll match below
-          );
+      const result = courses.map((c) => {
+        const mods = modsByCourse[c.id] ?? [];
+        const moduleIds = mods.map((m) => m.id);
+        const courseProg = (prog ?? []).filter((p) => moduleIds.includes(p.module_id));
+        const courseQuizzes = (quizzes ?? []).filter((q) => moduleIds.includes(q.module_id));
 
-          // Touched if any progress, quiz attempt, or submission exists
-          const touched = courseProg.length > 0 || courseQuizzes.length > 0;
-          if (!touched && !enrollMap[c.id]) return null;
+        // Dedupe completed modules (avoid double-counting duplicate progress rows)
+        const completedModuleIds = new Set(
+          courseProg.filter((p) => p.completed).map((p) => p.module_id)
+        );
+        const totalItems = mods.length;
+        const percent = totalItems
+          ? Math.min(100, Math.round((completedModuleIds.size * 100) / totalItems))
+          : 0;
 
-          const completedCount = courseProg.filter((p) => p.completed).length;
-          const totalItems = mods.length;
-          const percent = enrollMap[c.id]?.progress ?? (totalItems ? Math.round((completedCount * 100) / totalItems) : 0);
-
-          return {
-            id: c.id,
-            title: c.title,
-            modules: mods,
-            progress: percent,
-            quizzes: courseQuizzes,
-            submissions: courseSubs,
-            studentProgress: courseProg,
-            enrollmentStatus: enrollMap[c.id]?.status,
-          };
-        })
-        .filter(Boolean) as any[];
+        return {
+          id: c.id,
+          title: c.title,
+          modules: mods,
+          progress: percent,
+          quizzes: courseQuizzes,
+          submissions: [],
+          studentProgress: courseProg,
+          completedCount: completedModuleIds.size,
+          totalCount: totalItems,
+        };
+      });
 
       return result;
     },
