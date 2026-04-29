@@ -119,6 +119,7 @@ export default function Courses() {
                     <ImageIcon className="h-10 w-10 text-muted-foreground/40" />
                   </div>
                 )}
+                <Badge variant="outline" className="absolute top-2 right-2 text-[11px] shadow bg-background/90">#{(course as any).sequence ?? "—"}</Badge>
                 <Badge variant={course.status === "Published" ? "default" : "secondary"} className="absolute top-2 left-2 text-[11px] shadow">{course.status}</Badge>
               </div>
               <CardHeader className="pb-3">
