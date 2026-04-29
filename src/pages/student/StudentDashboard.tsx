@@ -4,9 +4,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Clock, CheckCircle2, ImageIcon, Award, AlertCircle } from "lucide-react";
+import { BookOpen, Clock, CheckCircle2, ImageIcon, Award, AlertCircle, Lock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { getCourseCompletions } from "@/lib/courseProgress";
 
 const PROGRAM_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -42,7 +43,7 @@ export default function StudentDashboard() {
     enabled: !!student,
   });
 
-  // Show all courses available for this campus once approved
+  // Show all courses available for this campus once approved (ordered by sequence)
   const { data: campusCourses } = useQuery({
     queryKey: ["campus-courses-dashboard", student?.campus_id],
     queryFn: async () => {
@@ -51,9 +52,16 @@ export default function StudentDashboard() {
         .select("courses(*)")
         .eq("campus_id", student!.campus_id!);
       if (error) throw error;
-      return (data?.map((cc: any) => cc.courses).filter(Boolean) ?? []).filter((c: any) => c.status === "Published");
+      const list = (data?.map((cc: any) => cc.courses).filter(Boolean) ?? []).filter((c: any) => c.status === "Published");
+      return list.sort((a: any, b: any) => (a.sequence ?? 9999) - (b.sequence ?? 9999));
     },
     enabled: !!student?.campus_id && programEnrollment?.status === "Approved" && student?.approval_status === "Approved",
+  });
+
+  const { data: completions } = useQuery({
+    queryKey: ["course-completions", student?.id, campusCourses?.map((c: any) => c.id).join(",")],
+    queryFn: async () => getCourseCompletions(student!.id, (campusCourses ?? []).map((c: any) => c.id)),
+    enabled: !!student && !!campusCourses?.length,
   });
 
   const applyToProgram = async () => {
@@ -142,28 +150,56 @@ export default function StudentDashboard() {
             </Card>
           ) : (
             <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-              {campusCourses.map((course: any) => {
+              {campusCourses.map((course: any, idx: number) => {
                 const cover = course.cover_url;
-                return (
-                  <Link to={`/student/course/${course.id}`} key={course.id}>
-                    <Card className="group hover:shadow-md transition-shadow cursor-pointer overflow-hidden flex flex-col h-full">
-                      <div className="relative aspect-[16/9] bg-muted overflow-hidden">
-                        {cover ? (
-                          <img src={cover} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
-                            <ImageIcon className="h-10 w-10 text-muted-foreground/40" />
-                          </div>
-                        )}
-                      </div>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-base leading-tight">{course.title}</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-xs text-primary font-medium">Open course →</p>
-                      </CardContent>
-                    </Card>
-                  </Link>
+                // Locked unless previous course (by sequence) is fully complete
+                const prev = idx > 0 ? campusCourses[idx - 1] : null;
+                const prevDone = !prev || (completions?.[prev.id]?.isComplete ?? false);
+                const locked = !prevDone;
+                const done = completions?.[course.id]?.isComplete ?? false;
+                const seq = course.sequence ?? idx + 1;
+
+                const inner = (
+                  <Card className={`group transition-shadow overflow-hidden flex flex-col h-full ${locked ? "opacity-60" : "hover:shadow-md cursor-pointer"}`}>
+                    <div className="relative aspect-[16/9] bg-muted overflow-hidden">
+                      {cover ? (
+                        <img src={cover} alt="" className={`w-full h-full object-cover ${!locked && "group-hover:scale-105 transition-transform duration-300"}`} />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
+                          <ImageIcon className="h-10 w-10 text-muted-foreground/40" />
+                        </div>
+                      )}
+                      <Badge variant="secondary" className="absolute top-2 left-2 text-[11px] shadow">Course {seq}</Badge>
+                      {locked && (
+                        <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
+                          <Lock className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                      )}
+                      {done && !locked && (
+                        <Badge className="absolute top-2 right-2 text-[11px] shadow bg-success text-success-foreground">
+                          <CheckCircle2 className="h-3 w-3 mr-1" /> Complete
+                        </Badge>
+                      )}
+                    </div>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base leading-tight">{course.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {locked ? (
+                        <p className="text-xs text-muted-foreground">Complete Course {seq - 1} to unlock</p>
+                      ) : (
+                        <p className="text-xs text-primary font-medium">{done ? "Review course →" : "Open course →"}</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+
+                return locked ? (
+                  <div key={course.id} onClick={() => toast.info(`Complete Course ${seq - 1} to unlock this course`)}>
+                    {inner}
+                  </div>
+                ) : (
+                  <Link to={`/student/course/${course.id}`} key={course.id}>{inner}</Link>
                 );
               })}
             </div>

@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, BookOpen, Video, HelpCircle, FileText, CheckCircle2, ImageIcon } from "lucide-react";
+import { Search, BookOpen, Video, HelpCircle, FileText, CheckCircle2, ImageIcon, Lock } from "lucide-react";
 import { toast } from "sonner";
+import { getCourseCompletions } from "@/lib/courseProgress";
 
 export default function StudentCatalog() {
   const { user } = useAuth();
@@ -46,7 +47,7 @@ export default function StudentCatalog() {
 
   const hasAccess = student?.approval_status === "Approved" && program?.status === "Approved";
 
-  // Courses assigned to this student's campus
+  // Courses assigned to this student's campus (ordered by sequence)
   const { data: campusCourses } = useQuery({
     queryKey: ["campus-courses", student?.campus_id],
     queryFn: async () => {
@@ -55,9 +56,17 @@ export default function StudentCatalog() {
         .select("courses(*, modules(id, type))")
         .eq("campus_id", student!.campus_id!);
       if (error) throw error;
-      return data?.map((cc: any) => cc.courses).filter(Boolean) ?? [];
+      const list = data?.map((cc: any) => cc.courses).filter(Boolean) ?? [];
+      return list.sort((a: any, b: any) => (a.sequence ?? 9999) - (b.sequence ?? 9999));
     },
     enabled: !!student?.campus_id,
+  });
+
+  const publishedIds = (campusCourses ?? []).filter((c: any) => c.status === "Published").map((c: any) => c.id);
+  const { data: completions } = useQuery({
+    queryKey: ["catalog-completions", student?.id, publishedIds.join(",")],
+    queryFn: async () => getCourseCompletions(student!.id, publishedIds),
+    enabled: !!student && publishedIds.length > 0,
   });
 
   const { data: myEnrollments } = useQuery({
@@ -122,20 +131,33 @@ export default function StudentCatalog() {
         </Card>
       ) : (
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((course: any) => {
+          {filtered.map((course: any, idx: number) => {
             const status = getEnrollmentStatus(course.id);
             const videoCount = course.modules?.filter((m: any) => m.type === "video").length ?? 0;
             const quizCount = course.modules?.filter((m: any) => m.type === "quiz").length ?? 0;
             const assignmentCount = course.modules?.filter((m: any) => m.type === "assignment").length ?? 0;
+            const seq = course.sequence ?? idx + 1;
+
+            // Locked if any earlier-sequence published course (in full sorted list) isn't complete
+            const earlier = (campusCourses ?? [])
+              .filter((c: any) => c.status === "Published" && (c.sequence ?? 9999) < (course.sequence ?? 9999));
+            const locked = hasAccess && earlier.some((c: any) => !(completions?.[c.id]?.isComplete));
+            const done = completions?.[course.id]?.isComplete ?? false;
 
             return (
-              <Card key={course.id} className="group hover:shadow-md transition-shadow flex flex-col overflow-hidden">
+              <Card key={course.id} className={`group transition-shadow flex flex-col overflow-hidden ${locked ? "opacity-60" : "hover:shadow-md"}`}>
                 <div className="relative aspect-[16/9] bg-muted overflow-hidden">
                   {course.cover_url ? (
-                    <img src={course.cover_url} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    <img src={course.cover_url} alt={course.title} className={`w-full h-full object-cover ${!locked && "group-hover:scale-105 transition-transform duration-300"}`} />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
                       <ImageIcon className="h-10 w-10 text-muted-foreground/40" />
+                    </div>
+                  )}
+                  <Badge variant="secondary" className="absolute top-2 left-2 text-[11px] shadow">Course {seq}</Badge>
+                  {locked && (
+                    <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
+                      <Lock className="h-8 w-8 text-muted-foreground" />
                     </div>
                   )}
                 </div>
@@ -152,14 +174,16 @@ export default function StudentCatalog() {
                     <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> {assignmentCount}</span>
                   </div>
 
-                  {hasAccess ? (
+                  {!hasAccess ? (
+                    <Badge variant="secondary" className="w-fit">Awaiting program approval</Badge>
+                  ) : locked ? (
+                    <Badge variant="outline" className="w-fit gap-1"><Lock className="h-3 w-3" /> Locked</Badge>
+                  ) : (
                     <Link to={`/student/course/${course.id}`}>
                       <Button size="sm" variant="outline" className="gap-1.5">
-                        <CheckCircle2 className="h-3.5 w-3.5" /> View Course
+                        <CheckCircle2 className="h-3.5 w-3.5" /> {done ? "Review Course" : "View Course"}
                       </Button>
                     </Link>
-                  ) : (
-                    <Badge variant="secondary" className="w-fit">Awaiting program approval</Badge>
                   )}
                 </CardContent>
               </Card>

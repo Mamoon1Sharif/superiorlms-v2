@@ -11,6 +11,7 @@ import { ArrowLeft, Video, HelpCircle, FileText, CheckCircle2, Lock, ChevronRigh
 import VideoPlayer from "@/components/student/VideoPlayer";
 import QuizPlayer from "@/components/student/QuizPlayer";
 import AssignmentSubmission from "@/components/student/AssignmentSubmission";
+import { getCourseCompletions } from "@/lib/courseProgress";
 
 interface ContentItem {
   id: string;
@@ -32,11 +33,33 @@ export default function StudentCourseView() {
   const { data: student } = useQuery({
     queryKey: ["my-student", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("students").select("id").eq("user_id", user!.id).single();
+      const { data, error } = await supabase.from("students").select("id, campus_id").eq("user_id", user!.id).single();
       if (error) throw error;
       return data;
     },
     enabled: !!user,
+  });
+
+  // Sequence gating: ensure all earlier-sequence courses on this campus are complete
+  const { data: gating } = useQuery({
+    queryKey: ["course-gating", student?.id, student?.campus_id, courseId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("course_campuses")
+        .select("courses(id, sequence, status)")
+        .eq("campus_id", student!.campus_id!);
+      if (error) throw error;
+      const list = (data?.map((cc: any) => cc.courses).filter(Boolean) ?? [])
+        .filter((c: any) => c.status === "Published")
+        .sort((a: any, b: any) => (a.sequence ?? 9999) - (b.sequence ?? 9999));
+      const idx = list.findIndex((c: any) => c.id === courseId);
+      if (idx <= 0) return { locked: false, prevSeq: null as number | null };
+      const prereqIds = list.slice(0, idx).map((c: any) => c.id);
+      const completions = await getCourseCompletions(student!.id, prereqIds);
+      const allDone = prereqIds.every((id) => completions[id]?.isComplete);
+      return { locked: !allDone, prevSeq: list[idx - 1].sequence ?? idx };
+    },
+    enabled: !!student?.id && !!student?.campus_id && !!courseId,
   });
 
   const { data: course } = useQuery({
@@ -196,6 +219,23 @@ export default function StudentCourseView() {
 
   if (!course || !student) {
     return <div className="flex items-center justify-center min-h-[400px] text-muted-foreground">Loading...</div>;
+  }
+
+  if (gating?.locked) {
+    return (
+      <Card className="max-w-lg mx-auto mt-12">
+        <CardContent className="p-8 text-center space-y-4">
+          <Lock className="h-10 w-10 text-muted-foreground mx-auto" />
+          <div>
+            <h2 className="text-lg font-semibold">Course locked</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              You must complete Course {gating.prevSeq} before starting this one.
+            </p>
+          </div>
+          <Link to="/student"><Button variant="outline" size="sm">← Back to my courses</Button></Link>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
