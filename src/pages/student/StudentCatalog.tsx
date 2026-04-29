@@ -47,7 +47,7 @@ export default function StudentCatalog() {
 
   const hasAccess = student?.approval_status === "Approved" && program?.status === "Approved";
 
-  // Courses assigned to this student's campus
+  // Courses assigned to this student's campus (ordered by sequence)
   const { data: campusCourses } = useQuery({
     queryKey: ["campus-courses", student?.campus_id],
     queryFn: async () => {
@@ -56,9 +56,17 @@ export default function StudentCatalog() {
         .select("courses(*, modules(id, type))")
         .eq("campus_id", student!.campus_id!);
       if (error) throw error;
-      return data?.map((cc: any) => cc.courses).filter(Boolean) ?? [];
+      const list = data?.map((cc: any) => cc.courses).filter(Boolean) ?? [];
+      return list.sort((a: any, b: any) => (a.sequence ?? 9999) - (b.sequence ?? 9999));
     },
     enabled: !!student?.campus_id,
+  });
+
+  const publishedIds = (campusCourses ?? []).filter((c: any) => c.status === "Published").map((c: any) => c.id);
+  const { data: completions } = useQuery({
+    queryKey: ["catalog-completions", student?.id, publishedIds.join(",")],
+    queryFn: async () => getCourseCompletions(student!.id, publishedIds),
+    enabled: !!student && publishedIds.length > 0,
   });
 
   const { data: myEnrollments } = useQuery({
