@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, BookOpen, Video, HelpCircle, FileText, CheckCircle2, ImageIcon } from "lucide-react";
+import { Search, BookOpen, Video, HelpCircle, FileText, CheckCircle2, ImageIcon, Lock } from "lucide-react";
 import { toast } from "sonner";
+import { getCourseCompletions } from "@/lib/courseProgress";
 
 export default function StudentCatalog() {
   const { user } = useAuth();
