@@ -12,7 +12,6 @@ import VideoPlayer from "@/components/student/VideoPlayer";
 import QuizPlayer from "@/components/student/QuizPlayer";
 import AssignmentSubmission from "@/components/student/AssignmentSubmission";
 import { getCourseCompletions } from "@/lib/courseProgress";
-import { toast } from "sonner";
 
 interface ContentItem {
   id: string;
