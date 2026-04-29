@@ -120,7 +120,7 @@ export default function Login() {
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-primary">
         {/* College background image */}
         <img
-          src={collegeBg}
+          src={bgUrl}
           alt="Superior College of Commerce Sargodha campus building"
           className="absolute inset-0 w-full h-full object-cover"
         />
