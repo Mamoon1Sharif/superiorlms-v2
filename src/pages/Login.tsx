@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { GraduationCap, Loader2, BookOpen, Users, Award } from "lucide-react";
 import { toast } from "sonner";
 import collegeBg from "@/assets/college-bg.jpg";
+import { fetchAppSettings } from "@/lib/appSettings";
 
 const quotes = [
   { text: "Education is the most powerful weapon which you can use to change the world.", author: "Nelson Mandela" },
