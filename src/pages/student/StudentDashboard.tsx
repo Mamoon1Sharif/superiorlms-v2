@@ -150,28 +150,56 @@ export default function StudentDashboard() {
             </Card>
           ) : (
             <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-              {campusCourses.map((course: any) => {
+              {campusCourses.map((course: any, idx: number) => {
                 const cover = course.cover_url;
-                return (
-                  <Link to={`/student/course/${course.id}`} key={course.id}>
-                    <Card className="group hover:shadow-md transition-shadow cursor-pointer overflow-hidden flex flex-col h-full">
-                      <div className="relative aspect-[16/9] bg-muted overflow-hidden">
-                        {cover ? (
-                          <img src={cover} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
-                            <ImageIcon className="h-10 w-10 text-muted-foreground/40" />
-                          </div>
-                        )}
-                      </div>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-base leading-tight">{course.title}</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-xs text-primary font-medium">Open course →</p>
-                      </CardContent>
-                    </Card>
-                  </Link>
+                // Locked unless previous course (by sequence) is fully complete
+                const prev = idx > 0 ? campusCourses[idx - 1] : null;
+                const prevDone = !prev || (completions?.[prev.id]?.isComplete ?? false);
+                const locked = !prevDone;
+                const done = completions?.[course.id]?.isComplete ?? false;
+                const seq = course.sequence ?? idx + 1;
+
+                const inner = (
+                  <Card className={`group transition-shadow overflow-hidden flex flex-col h-full ${locked ? "opacity-60" : "hover:shadow-md cursor-pointer"}`}>
+                    <div className="relative aspect-[16/9] bg-muted overflow-hidden">
+                      {cover ? (
+                        <img src={cover} alt="" className={`w-full h-full object-cover ${!locked && "group-hover:scale-105 transition-transform duration-300"}`} />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
+                          <ImageIcon className="h-10 w-10 text-muted-foreground/40" />
+                        </div>
+                      )}
+                      <Badge variant="secondary" className="absolute top-2 left-2 text-[11px] shadow">Course {seq}</Badge>
+                      {locked && (
+                        <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
+                          <Lock className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                      )}
+                      {done && !locked && (
+                        <Badge className="absolute top-2 right-2 text-[11px] shadow bg-success text-success-foreground">
+                          <CheckCircle2 className="h-3 w-3 mr-1" /> Complete
+                        </Badge>
+                      )}
+                    </div>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base leading-tight">{course.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {locked ? (
+                        <p className="text-xs text-muted-foreground">Complete Course {seq - 1} to unlock</p>
+                      ) : (
+                        <p className="text-xs text-primary font-medium">{done ? "Review course →" : "Open course →"}</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+
+                return locked ? (
+                  <div key={course.id} onClick={() => toast.info(`Complete Course ${seq - 1} to unlock this course`)}>
+                    {inner}
+                  </div>
+                ) : (
+                  <Link to={`/student/course/${course.id}`} key={course.id}>{inner}</Link>
                 );
               })}
             </div>
