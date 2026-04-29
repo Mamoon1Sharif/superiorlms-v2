@@ -1,10 +1,25 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 export default function Analytics() {
+  const [enrollmentRegionId, setEnrollmentRegionId] = useState<string | null>(null);
+  const [progressRegionId, setProgressRegionId] = useState<string | null>(null);
+
+  const { data: regions } = useQuery({
+    queryKey: ["regions"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("regions").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const { data: campuses } = useQuery({
     queryKey: ["campuses"],
     queryFn: async () => {
@@ -30,22 +45,55 @@ export default function Analytics() {
   });
   const labelFor = (c: any) => (cityCounts[c.city] > 1 ? `${c.city} - ${c.name}` : c.city);
 
-  // Avg progress by campus
-  const campusPerformance = (campuses ?? []).map((c) => {
-    const campusEnrollments = (enrollments ?? []).filter((e: any) => e.students?.campus_id === c.id);
-    const avg = campusEnrollments.length > 0
-      ? Math.round(campusEnrollments.reduce((s, e) => s + e.progress, 0) / campusEnrollments.length)
-      : 0;
-    return { campus: labelFor(c), avgProgress: avg };
-  });
+  const NO_REGION = "__none__";
+  const regionList = [
+    ...(regions ?? []),
+    { id: NO_REGION, name: "Unassigned" },
+  ];
 
-  // Enrollment counts by campus
-  const enrollmentByCampus = (campuses ?? []).map((c) => ({
-    campus: labelFor(c),
-    enrollments: (enrollments ?? []).filter((e: any) => e.students?.campus_id === c.id).length,
-  }));
+  const campusesInRegion = (rid: string) =>
+    (campuses ?? []).filter((c: any) => (c.region_id ?? NO_REGION) === rid);
 
-  // Status distribution
+  const enrollmentsForCampus = (cid: string) =>
+    (enrollments ?? []).filter((e: any) => e.students?.campus_id === cid);
+
+  const enrollmentByRegion = regionList
+    .map((r: any) => {
+      const cs = campusesInRegion(r.id);
+      const count = cs.reduce((sum, c: any) => sum + enrollmentsForCampus(c.id).length, 0);
+      return { id: r.id, region: r.name, enrollments: count };
+    })
+    .filter((r) => r.enrollments > 0 || r.id !== NO_REGION);
+
+  const progressByRegion = regionList
+    .map((r: any) => {
+      const cs = campusesInRegion(r.id);
+      const allEnr = cs.flatMap((c: any) => enrollmentsForCampus(c.id));
+      const avg = allEnr.length > 0
+        ? Math.round(allEnr.reduce((s, e: any) => s + e.progress, 0) / allEnr.length)
+        : 0;
+      return { id: r.id, region: r.name, avgProgress: avg };
+    })
+    .filter((r) => r.id !== NO_REGION || campusesInRegion(NO_REGION).length > 0);
+
+  const enrollmentByCampusInRegion = (rid: string) =>
+    campusesInRegion(rid).map((c: any) => ({
+      campus: labelFor(c),
+      enrollments: enrollmentsForCampus(c.id).length,
+    }));
+
+  const progressByCampusInRegion = (rid: string) =>
+    campusesInRegion(rid).map((c: any) => {
+      const ce = enrollmentsForCampus(c.id);
+      const avg = ce.length > 0
+        ? Math.round(ce.reduce((s, e: any) => s + e.progress, 0) / ce.length)
+        : 0;
+      return { campus: labelFor(c), avgProgress: avg };
+    });
+
+  const regionName = (rid: string | null) =>
+    regionList.find((r: any) => r.id === rid)?.name ?? "";
+
   const statusCounts = ["Approved", "Pending", "Rejected"].map((s) => ({
     status: s,
     count: (enrollments ?? []).filter((e) => e.status === s).length,
@@ -60,32 +108,84 @@ export default function Analytics() {
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle className="text-base">Enrollments by Campus</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center justify-between gap-2">
+              <span>
+                {enrollmentRegionId
+                  ? `Enrollments — ${regionName(enrollmentRegionId)}`
+                  : "Enrollments by Region"}
+              </span>
+              {enrollmentRegionId && (
+                <Button variant="ghost" size="sm" onClick={() => setEnrollmentRegionId(null)}>
+                  <ArrowLeft className="h-4 w-4 mr-1" /> Back
+                </Button>
+              )}
+            </CardTitle>
+          </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={enrollmentByCampus}>
+              <BarChart
+                data={enrollmentRegionId ? enrollmentByCampusInRegion(enrollmentRegionId) : enrollmentByRegion}
+              >
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 20%, 90%)" />
-                <XAxis dataKey="campus" tick={{ fontSize: 12 }} />
+                <XAxis dataKey={enrollmentRegionId ? "campus" : "region"} tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip />
-                <Bar dataKey="enrollments" fill="hsl(199, 89%, 38%)" radius={[6, 6, 0, 0]} />
+                <Bar
+                  dataKey="enrollments"
+                  fill="hsl(199, 89%, 38%)"
+                  radius={[6, 6, 0, 0]}
+                  cursor={enrollmentRegionId ? "default" : "pointer"}
+                  onClick={(d: any) => {
+                    if (!enrollmentRegionId && d?.id) setEnrollmentRegionId(d.id);
+                  }}
+                />
               </BarChart>
             </ResponsiveContainer>
+            {!enrollmentRegionId && (
+              <p className="text-xs text-muted-foreground mt-2">Click a bar to view campuses in that region.</p>
+            )}
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="text-base">Avg Progress by Campus</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center justify-between gap-2">
+              <span>
+                {progressRegionId
+                  ? `Avg Progress — ${regionName(progressRegionId)}`
+                  : "Avg Progress by Region"}
+              </span>
+              {progressRegionId && (
+                <Button variant="ghost" size="sm" onClick={() => setProgressRegionId(null)}>
+                  <ArrowLeft className="h-4 w-4 mr-1" /> Back
+                </Button>
+              )}
+            </CardTitle>
+          </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={campusPerformance}>
+              <BarChart
+                data={progressRegionId ? progressByCampusInRegion(progressRegionId) : progressByRegion}
+              >
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 20%, 90%)" />
-                <XAxis dataKey="campus" tick={{ fontSize: 12 }} />
+                <XAxis dataKey={progressRegionId ? "campus" : "region"} tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} domain={[0, 100]} />
                 <Tooltip />
-                <Bar dataKey="avgProgress" fill="hsl(168, 71%, 39%)" radius={[6, 6, 0, 0]} />
+                <Bar
+                  dataKey="avgProgress"
+                  fill="hsl(168, 71%, 39%)"
+                  radius={[6, 6, 0, 0]}
+                  cursor={progressRegionId ? "default" : "pointer"}
+                  onClick={(d: any) => {
+                    if (!progressRegionId && d?.id) setProgressRegionId(d.id);
+                  }}
+                />
               </BarChart>
             </ResponsiveContainer>
+            {!progressRegionId && (
+              <p className="text-xs text-muted-foreground mt-2">Click a bar to view campuses in that region.</p>
+            )}
           </CardContent>
         </Card>
 
