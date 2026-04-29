@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, Navigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,6 +11,8 @@ import { ArrowLeft, Video, HelpCircle, FileText, CheckCircle2, Lock, ChevronRigh
 import VideoPlayer from "@/components/student/VideoPlayer";
 import QuizPlayer from "@/components/student/QuizPlayer";
 import AssignmentSubmission from "@/components/student/AssignmentSubmission";
+import { getCourseCompletions } from "@/lib/courseProgress";
+import { toast } from "sonner";
 
 interface ContentItem {
   id: string;
