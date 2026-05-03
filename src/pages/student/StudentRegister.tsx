@@ -105,6 +105,7 @@ export default function StudentRegister() {
           reg_no: regNo,
           campus_id: campusId,
           class_id: classId || null,
+          section_id: sectionId || null,
         },
       },
     });
