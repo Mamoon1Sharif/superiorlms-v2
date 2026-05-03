@@ -53,20 +53,9 @@ export default function CreateCourse() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
-  const [selectedCampuses, setSelectedCampuses] = useState<string[]>([]);
   const [modules, setModules] = useState<ModuleData[]>([]);
   const [saving, setSaving] = useState(false);
 
-  const { data: campuses } = useQuery({
-    queryKey: ["campuses"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("campuses").select("id, name, city");
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const toggleCampus = (id: string) => setSelectedCampuses((p) => p.includes(id) ? p.filter((c) => c !== id) : [...p, id]);
   const addModule = () => setModules((p) => [...p, { title: "", videos: [], questions: [], assignment: null }]);
   const removeModule = (i: number) => setModules((p) => p.filter((_, idx) => idx !== i));
   const updateModule = (i: number, u: Partial<ModuleData>) => setModules((p) => p.map((m, idx) => idx === i ? { ...m, ...u } : m));
