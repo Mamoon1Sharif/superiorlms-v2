@@ -8,20 +8,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchAppSettings, applyFavicon } from "@/lib/appSettings";
 import { Loader2, Upload, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
+import { Slider } from "@/components/ui/slider";
 
 export default function SettingsPage() {
   const [loginBg, setLoginBg] = useState<string | null>(null);
   const [favicon, setFavicon] = useState<string | null>(null);
-  const [uploading, setUploading] = useState<"bg" | "fav" | null>(null);
+  const [logo, setLogo] = useState<string | null>(null);
+  const [logoSize, setLogoSize] = useState<number>(44);
+  const [savingSize, setSavingSize] = useState(false);
+  const [uploading, setUploading] = useState<"bg" | "fav" | "logo" | null>(null);
 
   useEffect(() => {
     fetchAppSettings().then((s) => {
       setLoginBg(s.login_background_url);
       setFavicon(s.favicon_url);
+      setLogo(s.logo_url);
+      setLogoSize(s.logo_size);
     });
   }, []);
 
-  const upload = async (file: File, kind: "bg" | "fav") => {
+  const upload = async (file: File, kind: "bg" | "fav" | "logo") => {
     if (!file.type.startsWith("image/")) { toast.error("Please upload an image"); return; }
     if (file.size > 5 * 1024 * 1024) { toast.error("Image must be < 5MB"); return; }
     setUploading(kind);
@@ -33,7 +39,7 @@ export default function SettingsPage() {
       const { data } = supabase.storage.from("app-assets").getPublicUrl(path);
       const url = data.publicUrl;
 
-      const column = kind === "bg" ? "login_background_url" : "favicon_url";
+      const column = kind === "bg" ? "login_background_url" : kind === "fav" ? "favicon_url" : "logo_url";
       const { error: updErr } = await (supabase as any)
         .from("app_settings")
         .update({ [column]: url, updated_at: new Date().toISOString() })
@@ -41,12 +47,29 @@ export default function SettingsPage() {
       if (updErr) throw updErr;
 
       if (kind === "bg") setLoginBg(url);
-      else { setFavicon(url); applyFavicon(url); }
-      toast.success(kind === "bg" ? "Login background updated" : "Favicon updated");
+      else if (kind === "fav") { setFavicon(url); applyFavicon(url); }
+      else setLogo(url);
+      toast.success("Updated");
     } catch (err: any) {
       toast.error(err.message || "Upload failed");
     } finally {
       setUploading(null);
+    }
+  };
+
+  const saveLogoSize = async (size: number) => {
+    setSavingSize(true);
+    try {
+      const { error } = await (supabase as any)
+        .from("app_settings")
+        .update({ logo_size: size, updated_at: new Date().toISOString() })
+        .eq("id", true);
+      if (error) throw error;
+      toast.success("Logo size saved");
+    } catch (err: any) {
+      toast.error(err.message || "Failed");
+    } finally {
+      setSavingSize(false);
     }
   };
 
@@ -91,6 +114,46 @@ export default function SettingsPage() {
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f, "bg"); e.target.value = ""; }}
               />
             </label>
+          </div>
+
+          {/* Logo */}
+          <div className="space-y-3 pt-4 border-t border-border">
+            <Label>Organization Logo</Label>
+            <p className="text-xs text-muted-foreground">Shown on the login screen left panel. Transparent PNG recommended.</p>
+            <div className="flex items-center gap-4 p-4 rounded-lg bg-primary/90">
+              {logo ? (
+                <img src={logo} alt="Logo preview" style={{ height: logoSize, width: "auto" }} className="object-contain" />
+              ) : (
+                <div className="h-11 w-11 rounded-md border-2 border-dashed border-white/40 flex items-center justify-center">
+                  <ImageIcon className="h-5 w-5 text-white/60" />
+                </div>
+              )}
+            </div>
+            <label className="inline-flex">
+              <Button type="button" variant="outline" size="sm" asChild disabled={uploading === "logo"}>
+                <span className="cursor-pointer">
+                  {uploading === "logo" ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
+                  {logo ? "Replace logo" : "Upload logo"}
+                </span>
+              </Button>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={uploading === "logo"}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f, "logo"); e.target.value = ""; }}
+              />
+            </label>
+
+            <div className="space-y-2 pt-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Logo height: {logoSize}px</Label>
+                <Button type="button" size="sm" variant="ghost" disabled={savingSize} onClick={() => saveLogoSize(logoSize)}>
+                  {savingSize ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save size"}
+                </Button>
+              </div>
+              <Slider min={24} max={120} step={2} value={[logoSize]} onValueChange={(v) => setLogoSize(v[0])} />
+            </div>
           </div>
 
           {/* Favicon */}

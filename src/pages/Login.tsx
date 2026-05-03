@@ -27,9 +27,15 @@ export default function Login() {
   const [quoteIndex] = useState(() => Math.floor(Math.random() * quotes.length));
   const [stats, setStats] = useState({ courses: 0, students: 0, campuses: 0 });
   const [bgUrl, setBgUrl] = useState<string>(collegeBg);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoSize, setLogoSize] = useState<number>(44);
 
   useEffect(() => {
-    fetchAppSettings().then((s) => { if (s.login_background_url) setBgUrl(s.login_background_url); }).catch(() => {});
+    fetchAppSettings().then((s) => {
+      if (s.login_background_url) setBgUrl(s.login_background_url);
+      setLogoUrl(s.logo_url);
+      setLogoSize(s.logo_size);
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -131,13 +137,19 @@ export default function Login() {
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-between p-12 text-primary-foreground">
           <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center">
-              <GraduationCap className="h-6 w-6" />
-            </div>
-            <div>
-              <h2 className="font-bold text-lg tracking-tight">Superior Group</h2>
-              <p className="text-xs text-white/70">of Colleges</p>
-            </div>
+            {logoUrl ? (
+              <img src={logoUrl} alt="Organization logo" style={{ height: logoSize, width: "auto" }} className="object-contain" />
+            ) : (
+              <>
+                <div className="h-11 w-11 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center">
+                  <GraduationCap className="h-6 w-6" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-lg tracking-tight">Superior Group</h2>
+                  <p className="text-xs text-white/70">of Colleges</p>
+                </div>
+              </>
+            )}
           </div>
 
           <div className="space-y-8">
