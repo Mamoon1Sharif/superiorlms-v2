@@ -72,6 +72,12 @@ export default function InstituteManagement() {
             <AddCampusCard queryClient={queryClient} regions={regions ?? []} />
             <AddClassCard queryClient={queryClient} campuses={campuses ?? []} />
           </div>
+          <BulkUploadCard
+            queryClient={queryClient}
+            regions={regions ?? []}
+            campuses={campuses ?? []}
+            classes={classes ?? []}
+          />
         </TabsContent>
 
         <TabsContent value="overview">
