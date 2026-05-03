@@ -155,12 +155,22 @@ function EditTeacherDialog({ teacher, open, onOpenChange }: { teacher: any; open
     enabled: !!campusId,
   });
 
+  const { data: sectionsList } = useQuery({
+    queryKey: ["sections-by-class-edit", classId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("sections").select("*").eq("class_id", classId).order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!classId,
+  });
+
   const { data: currentAssignments } = useQuery({
     queryKey: ["teacher-class-assignments", teacher.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("teacher_class_assignments")
-        .select("*, classes(name, campuses(name))")
+        .select("*, classes(name, campuses(name)), sections(name)")
         .eq("teacher_id", teacher.id);
       if (error) throw error;
       return data;
@@ -169,13 +179,14 @@ function EditTeacherDialog({ teacher, open, onOpenChange }: { teacher: any; open
 
   const addClass = async () => {
     if (!classId) return;
-    if (currentAssignments?.some((a) => a.class_id === classId)) {
-      toast.error("Class already assigned");
+    const secKey = sectionId || null;
+    if (currentAssignments?.some((a) => a.class_id === classId && (a.section_id || null) === secKey)) {
+      toast.error("Class/section already assigned");
       return;
     }
     const { data, error } = await supabase
       .from("teacher_class_assignments")
-      .insert({ teacher_id: teacher.id, class_id: classId })
+      .insert({ teacher_id: teacher.id, class_id: classId, section_id: secKey })
       .select()
       .single();
     if (error) { console.error("addClass error:", error); toast.error(error.message); return; }
@@ -183,6 +194,7 @@ function EditTeacherDialog({ teacher, open, onOpenChange }: { teacher: any; open
     await queryClient.invalidateQueries({ queryKey: ["teacher-class-assignments", teacher.id] });
     await queryClient.invalidateQueries({ queryKey: ["teacher-class-assignments-all"] });
     setClassId("");
+    setSectionId("");
     toast.success("Class assigned");
   };
 
@@ -200,10 +212,11 @@ function EditTeacherDialog({ teacher, open, onOpenChange }: { teacher: any; open
     if (error) { setSaving(false); toast.error(error.message); return; }
 
     // Auto-persist a class selected in the dropdown but not added via "Add Class"
-    if (classId && !currentAssignments?.some((a) => a.class_id === classId)) {
+    const secKey = sectionId || null;
+    if (classId && !currentAssignments?.some((a) => a.class_id === classId && (a.section_id || null) === secKey)) {
       const { error: assignErr } = await supabase
         .from("teacher_class_assignments")
-        .insert({ teacher_id: teacher.id, class_id: classId });
+        .insert({ teacher_id: teacher.id, class_id: classId, section_id: secKey });
       if (assignErr) { setSaving(false); toast.error(assignErr.message); return; }
     }
 
