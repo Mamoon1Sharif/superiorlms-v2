@@ -23,6 +23,7 @@ type EditTarget =
   | { type: "region"; id: string; name: string }
   | { type: "campus"; id: string; name: string; city: string; region_id: string | null }
   | { type: "class"; id: string; name: string; campus_id: string }
+  | { type: "section"; id: string; name: string; class_id: string }
   | null;
 
 
@@ -57,7 +58,19 @@ export default function InstituteManagement() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("classes")
-        .select("*, campuses:campus_id(id, name, city)")
+        .select("*, campuses:campus_id(id, name, city, region_id)")
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: sections } = useQuery({
+    queryKey: ["sections-all"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sections")
+        .select("*")
         .order("name");
       if (error) throw error;
       return data;
@@ -65,8 +78,8 @@ export default function InstituteManagement() {
   });
 
   const grouped = useMemo(
-    () => buildGrouped(regions ?? [], campuses ?? [], classes ?? [], search),
-    [regions, campuses, classes, search],
+    () => buildGrouped(regions ?? [], campuses ?? [], classes ?? [], sections ?? [], search),
+    [regions, campuses, classes, sections, search],
   );
 
   return (
@@ -74,7 +87,7 @@ export default function InstituteManagement() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Institute Management</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Manage your regions, campuses, and classes
+          Manage your regions, campuses, classes and sections
         </p>
       </div>
 
@@ -85,10 +98,11 @@ export default function InstituteManagement() {
         </TabsList>
 
         <TabsContent value="add" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <AddRegionCard queryClient={queryClient} />
             <AddCampusCard queryClient={queryClient} regions={regions ?? []} />
-            <AddClassCard queryClient={queryClient} campuses={campuses ?? []} />
+            <AddClassCard queryClient={queryClient} regions={regions ?? []} campuses={campuses ?? []} />
+            <AddSectionCard queryClient={queryClient} regions={regions ?? []} campuses={campuses ?? []} classes={classes ?? []} />
           </div>
           <BulkUploadCard
             queryClient={queryClient}
@@ -120,13 +134,14 @@ export default function InstituteManagement() {
                     <TableHead>Campus</TableHead>
                     <TableHead>City</TableHead>
                     <TableHead>Class</TableHead>
+                    <TableHead>Section</TableHead>
                     <TableHead className="w-[110px]">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {grouped.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                         {search ? "No matches found." : "No data yet. Add regions, campuses, and classes to get started."}
                       </TableCell>
                     </TableRow>
@@ -166,6 +181,7 @@ export default function InstituteManagement() {
                           <TableCell>{row.campus}</TableCell>
                           <TableCell>{row.city}</TableCell>
                           <TableCell>{row.className}</TableCell>
+                          <TableCell>{row.section}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">
                               {row.editTarget && (
@@ -203,6 +219,7 @@ export default function InstituteManagement() {
         onClose={() => setEditTarget(null)}
         regions={regions ?? []}
         campuses={campuses ?? []}
+        classes={classes ?? []}
         queryClient={queryClient}
       />
     </div>
@@ -214,8 +231,9 @@ interface GroupedRow {
   campus: string;
   city: string;
   className: string;
+  section: string;
   editTarget: EditTarget;
-  deleteType?: "campus" | "class";
+  deleteType?: "campus" | "class" | "section";
   deleteId?: string;
 }
 
@@ -228,16 +246,14 @@ function buildGrouped(
   regions: any[],
   campuses: any[],
   classes: any[],
+  sections: any[],
   search: string,
 ): RegionGroup[] {
   const q = search.trim().toLowerCase();
   const matches = (s: string) => !q || s.toLowerCase().includes(q);
 
   const groups: RegionGroup[] = [];
-  const allRegions = [
-    ...regions,
-    { id: "__none__", name: "—" },
-  ];
+  const allRegions = [...regions, { id: "__none__", name: "—" }];
 
   for (const region of allRegions) {
     const regionCampuses =
@@ -255,6 +271,7 @@ function buildGrouped(
         campus: "—",
         city: "—",
         className: "—",
+        section: "—",
         editTarget: null,
       });
     } else {
@@ -274,6 +291,7 @@ function buildGrouped(
             campus: campus.name,
             city: campus.city,
             className: "—",
+            section: "—",
             editTarget: {
               type: "campus",
               id: campus.id,
@@ -286,27 +304,57 @@ function buildGrouped(
           });
         } else {
           for (const cls of campusClasses) {
-            if (
-              !matches(region.name) &&
-              !matches(campus.name) &&
-              !matches(campus.city ?? "") &&
-              !matches(cls.name)
-            )
-              continue;
-            rows.push({
-              key: `cl-${cls.id}`,
-              campus: campus.name,
-              city: campus.city,
-              className: cls.name,
-              editTarget: {
-                type: "class",
-                id: cls.id,
-                name: cls.name,
-                campus_id: (cls as any).campus_id,
-              },
-              deleteType: "class",
-              deleteId: cls.id,
-            });
+            const classSections = sections.filter((s) => s.class_id === cls.id);
+            if (classSections.length === 0) {
+              if (
+                !matches(region.name) &&
+                !matches(campus.name) &&
+                !matches(campus.city ?? "") &&
+                !matches(cls.name)
+              )
+                continue;
+              rows.push({
+                key: `cl-${cls.id}`,
+                campus: campus.name,
+                city: campus.city,
+                className: cls.name,
+                section: "—",
+                editTarget: {
+                  type: "class",
+                  id: cls.id,
+                  name: cls.name,
+                  campus_id: (cls as any).campus_id,
+                },
+                deleteType: "class",
+                deleteId: cls.id,
+              });
+            } else {
+              for (const sec of classSections) {
+                if (
+                  !matches(region.name) &&
+                  !matches(campus.name) &&
+                  !matches(campus.city ?? "") &&
+                  !matches(cls.name) &&
+                  !matches(sec.name)
+                )
+                  continue;
+                rows.push({
+                  key: `sec-${sec.id}`,
+                  campus: campus.name,
+                  city: campus.city,
+                  className: cls.name,
+                  section: sec.name,
+                  editTarget: {
+                    type: "section",
+                    id: sec.id,
+                    name: sec.name,
+                    class_id: sec.class_id,
+                  },
+                  deleteType: "section",
+                  deleteId: sec.id,
+                });
+              }
+            }
           }
         }
       }
@@ -325,18 +373,21 @@ function EditDialog({
   onClose,
   regions,
   campuses,
+  classes,
   queryClient,
 }: {
   target: EditTarget;
   onClose: () => void;
   regions: any[];
   campuses: any[];
+  classes: any[];
   queryClient: any;
 }) {
   const [name, setName] = useState("");
   const [city, setCity] = useState("");
   const [regionId, setRegionId] = useState<string>("");
   const [campusId, setCampusId] = useState<string>("");
+  const [classId, setClassId] = useState<string>("");
 
   // Sync state when target changes
   useMemo(() => {
@@ -347,8 +398,25 @@ function EditDialog({
       setRegionId(target.region_id ?? "");
     } else if (target.type === "class") {
       setCampusId(target.campus_id);
+      const cls = classes.find((c) => c.id === target.id);
+      setRegionId(cls?.campuses?.region_id ?? "");
+    } else if (target.type === "section") {
+      setClassId(target.class_id);
+      const cls = classes.find((c) => c.id === target.class_id);
+      setCampusId(cls?.campus_id ?? "");
+      setRegionId(cls?.campuses?.region_id ?? "");
     }
   }, [target]);
+
+  // Filtered options
+  const filteredCampuses = useMemo(
+    () => (regionId ? campuses.filter((c) => c.region_id === regionId) : campuses),
+    [campuses, regionId],
+  );
+  const filteredClasses = useMemo(
+    () => (campusId ? classes.filter((c) => c.campus_id === campusId) : classes),
+    [classes, campusId],
+  );
 
   const save = useMutation({
     mutationFn: async () => {
@@ -375,12 +443,19 @@ function EditDialog({
           .update({ name: name.trim(), campus_id: campusId })
           .eq("id", target.id);
         if (error) throw error;
+      } else if (target.type === "section") {
+        const { error } = await supabase
+          .from("sections")
+          .update({ name: name.trim(), class_id: classId })
+          .eq("id", target.id);
+        if (error) throw error;
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["regions"] });
       queryClient.invalidateQueries({ queryKey: ["campuses-all"] });
       queryClient.invalidateQueries({ queryKey: ["classes-all"] });
+      queryClient.invalidateQueries({ queryKey: ["sections-all"] });
       toast.success("Updated");
       onClose();
     },
@@ -415,18 +490,48 @@ function EditDialog({
               </Select>
             </div>
           )}
-          {target.type === "class" && (
+          {(target.type === "class" || target.type === "section") && (
+            <>
+              <div className="space-y-1">
+                <Label>Region</Label>
+                <Select value={regionId} onValueChange={(v) => { setRegionId(v); setCampusId(""); setClassId(""); }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select region" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {regions.map((r) => (
+                      <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Campus</Label>
+                <Select value={campusId} onValueChange={(v) => { setCampusId(v); setClassId(""); }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select campus" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredCampuses.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name} — {c.city}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
+          {target.type === "section" && (
             <div className="space-y-1">
-              <Label>Campus</Label>
-              <Select value={campusId} onValueChange={setCampusId}>
+              <Label>Class</Label>
+              <Select value={classId} onValueChange={setClassId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select campus" />
+                  <SelectValue placeholder="Select class" />
                 </SelectTrigger>
                 <SelectContent>
-                  {campuses.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name} — {c.city}
-                    </SelectItem>
+                  {filteredClasses.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -453,7 +558,8 @@ function EditDialog({
               save.isPending ||
               !name.trim() ||
               (target.type === "campus" && !city.trim()) ||
-              (target.type === "class" && !campusId)
+              (target.type === "class" && !campusId) ||
+              (target.type === "section" && !classId)
             }
           >
             Save
@@ -469,11 +575,14 @@ function DeleteButton({
   id,
   queryClient,
 }: {
-  type: "region" | "campus" | "class";
+  type: "region" | "campus" | "class" | "section";
   id: string;
   queryClient: any;
 }) {
-  const table = type === "region" ? "regions" : type === "campus" ? "campuses" : "classes";
+  const table =
+    type === "region" ? "regions" :
+    type === "campus" ? "campuses" :
+    type === "class" ? "classes" : "sections";
   const deleteMut = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from(table).delete().eq("id", id);
@@ -483,6 +592,7 @@ function DeleteButton({
       queryClient.invalidateQueries({ queryKey: ["regions"] });
       queryClient.invalidateQueries({ queryKey: ["campuses-all"] });
       queryClient.invalidateQueries({ queryKey: ["classes-all"] });
+      queryClient.invalidateQueries({ queryKey: ["sections-all"] });
       toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} deleted`);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -606,13 +716,21 @@ function AddCampusCard({
 
 function AddClassCard({
   queryClient,
+  regions,
   campuses,
 }: {
   queryClient: any;
+  regions: any[];
   campuses: any[];
 }) {
   const [name, setName] = useState("");
+  const [regionId, setRegionId] = useState("");
   const [campusId, setCampusId] = useState("");
+
+  const filteredCampuses = useMemo(
+    () => (regionId ? campuses.filter((c) => c.region_id === regionId) : campuses),
+    [campuses, regionId],
+  );
 
   const add = useMutation({
     mutationFn: async () => {
@@ -636,12 +754,22 @@ function AddClassCard({
         <CardTitle className="text-sm">Add Class</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        <Select value={regionId} onValueChange={(v) => { setRegionId(v); setCampusId(""); }}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select region (optional)" />
+          </SelectTrigger>
+          <SelectContent>
+            {regions.map((r) => (
+              <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select value={campusId} onValueChange={setCampusId}>
           <SelectTrigger>
             <SelectValue placeholder="Select campus" />
           </SelectTrigger>
           <SelectContent>
-            {campuses.map((c) => (
+            {filteredCampuses.map((c) => (
               <SelectItem key={c.id} value={c.id}>
                 {c.name} — {c.city}
               </SelectItem>
@@ -661,6 +789,104 @@ function AddClassCard({
           disabled={add.isPending || !name.trim() || !campusId}
         >
           <Plus className="h-4 w-4 mr-1" /> Add Class
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function AddSectionCard({
+  queryClient,
+  regions,
+  campuses,
+  classes,
+}: {
+  queryClient: any;
+  regions: any[];
+  campuses: any[];
+  classes: any[];
+}) {
+  const [name, setName] = useState("");
+  const [regionId, setRegionId] = useState("");
+  const [campusId, setCampusId] = useState("");
+  const [classId, setClassId] = useState("");
+
+  const filteredCampuses = useMemo(
+    () => (regionId ? campuses.filter((c) => c.region_id === regionId) : campuses),
+    [campuses, regionId],
+  );
+  const filteredClasses = useMemo(
+    () => (campusId ? classes.filter((c) => c.campus_id === campusId) : classes),
+    [classes, campusId],
+  );
+
+  const add = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("sections").insert({
+        name: name.trim(),
+        class_id: classId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sections-all"] });
+      setName("");
+      toast.success("Section added");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm">Add Section</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <Select value={regionId} onValueChange={(v) => { setRegionId(v); setCampusId(""); setClassId(""); }}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select region (optional)" />
+          </SelectTrigger>
+          <SelectContent>
+            {regions.map((r) => (
+              <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={campusId} onValueChange={(v) => { setCampusId(v); setClassId(""); }}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select campus" />
+          </SelectTrigger>
+          <SelectContent>
+            {filteredCampuses.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.name} — {c.city}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={classId} onValueChange={setClassId}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select class" />
+          </SelectTrigger>
+          <SelectContent>
+            {filteredClasses.map((c) => (
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Input
+          placeholder="e.g. Section A"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && name.trim() && classId && add.mutate()}
+        />
+        <Button
+          size="sm"
+          className="w-full"
+          onClick={() => name.trim() && classId && add.mutate()}
+          disabled={add.isPending || !name.trim() || !classId}
+        >
+          <Plus className="h-4 w-4 mr-1" /> Add Section
         </Button>
       </CardContent>
     </Card>
