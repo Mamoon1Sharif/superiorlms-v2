@@ -1,19 +1,35 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Trash2, Download, Upload } from "lucide-react";
+import { Plus, Trash2, Download, Upload, Pencil, Search } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import * as XLSX from "xlsx";
+
+type EditTarget =
+  | { type: "region"; id: string; name: string }
+  | { type: "campus"; id: string; name: string; city: string; region_id: string | null }
+  | { type: "class"; id: string; name: string; campus_id: string }
+  | null;
 
 
 export default function InstituteManagement() {
   const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
+  const [editTarget, setEditTarget] = useState<EditTarget>(null);
 
   const { data: regions } = useQuery({
     queryKey: ["regions"],
@@ -48,8 +64,10 @@ export default function InstituteManagement() {
     },
   });
 
-  // Build unified table rows
-  const tableRows = buildTableRows(regions ?? [], campuses ?? [], classes ?? []);
+  const grouped = useMemo(
+    () => buildGrouped(regions ?? [], campuses ?? [], classes ?? [], search),
+    [regions, campuses, classes, search],
+  );
 
   return (
     <div className="space-y-6">
@@ -82,8 +100,17 @@ export default function InstituteManagement() {
 
         <TabsContent value="overview">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
               <CardTitle className="text-base">Institute Structure</CardTitle>
+              <div className="relative w-full max-w-xs">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search region, campus, city, class..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
             </CardHeader>
             <CardContent>
               <Table>
@@ -91,32 +118,78 @@ export default function InstituteManagement() {
                   <TableRow>
                     <TableHead>Region</TableHead>
                     <TableHead>Campus</TableHead>
+                    <TableHead>City</TableHead>
                     <TableHead>Class</TableHead>
-                    <TableHead className="w-[60px]">Action</TableHead>
+                    <TableHead className="w-[110px]">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {tableRows.length === 0 ? (
+                  {grouped.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                        No data yet. Add regions, campuses, and classes to get started.
+                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                        {search ? "No matches found." : "No data yet. Add regions, campuses, and classes to get started."}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    tableRows.map((row) => (
-                      <TableRow key={row.key}>
-                        <TableCell className="font-medium">{row.region}</TableCell>
-                        <TableCell>{row.campus}</TableCell>
-                        <TableCell>{row.className}</TableCell>
-                        <TableCell>
-                          <DeleteButton
-                            type={row.deleteType}
-                            id={row.deleteId}
-                            queryClient={queryClient}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    ))
+                    grouped.map((g) =>
+                      g.rows.map((row, idx) => (
+                        <TableRow key={row.key}>
+                          {idx === 0 && (
+                            <TableCell
+                              rowSpan={g.rows.length}
+                              className="font-medium align-top border-r"
+                            >
+                              <div className="flex items-center gap-1">
+                                <span>{g.region.name}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  onClick={() =>
+                                    setEditTarget({
+                                      type: "region",
+                                      id: g.region.id,
+                                      name: g.region.name,
+                                    })
+                                  }
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                                <DeleteButton
+                                  type="region"
+                                  id={g.region.id}
+                                  queryClient={queryClient}
+                                />
+                              </div>
+                            </TableCell>
+                          )}
+                          <TableCell>{row.campus}</TableCell>
+                          <TableCell>{row.city}</TableCell>
+                          <TableCell>{row.className}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              {row.editTarget && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => setEditTarget(row.editTarget)}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                              {row.deleteType && row.deleteId && (
+                                <DeleteButton
+                                  type={row.deleteType}
+                                  id={row.deleteId}
+                                  queryClient={queryClient}
+                                />
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )),
+                    )
                   )}
                 </TableBody>
               </Table>
@@ -124,62 +197,113 @@ export default function InstituteManagement() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <EditDialog
+        target={editTarget}
+        onClose={() => setEditTarget(null)}
+        regions={regions ?? []}
+        campuses={campuses ?? []}
+        queryClient={queryClient}
+      />
     </div>
   );
 }
 
-interface TableRowData {
+interface GroupedRow {
   key: string;
-  region: string;
   campus: string;
+  city: string;
   className: string;
-  deleteType: "region" | "campus" | "class";
-  deleteId: string;
+  editTarget: EditTarget;
+  deleteType?: "campus" | "class";
+  deleteId?: string;
 }
 
-function buildTableRows(
+interface RegionGroup {
+  region: { id: string; name: string };
+  rows: GroupedRow[];
+}
+
+function buildGrouped(
   regions: any[],
   campuses: any[],
-  classes: any[]
-): TableRowData[] {
-  const rows: TableRowData[] = [];
+  classes: any[],
+  search: string,
+): RegionGroup[] {
+  const q = search.trim().toLowerCase();
+  const matches = (s: string) => !q || s.toLowerCase().includes(q);
 
-  for (const region of regions) {
-    const regionCampuses = campuses.filter(
-      (c) => (c as any).regions?.id === region.id
-    );
+  const groups: RegionGroup[] = [];
+  const allRegions = [
+    ...regions,
+    { id: "__none__", name: "—" },
+  ];
+
+  for (const region of allRegions) {
+    const regionCampuses =
+      region.id === "__none__"
+        ? campuses.filter((c) => !(c as any).regions)
+        : campuses.filter((c) => (c as any).regions?.id === region.id);
+
+    const rows: GroupedRow[] = [];
 
     if (regionCampuses.length === 0) {
+      if (region.id === "__none__") continue;
+      if (!matches(region.name)) continue;
       rows.push({
         key: `r-${region.id}`,
-        region: region.name,
         campus: "—",
+        city: "—",
         className: "—",
-        deleteType: "region",
-        deleteId: region.id,
+        editTarget: null,
       });
     } else {
       for (const campus of regionCampuses) {
         const campusClasses = classes.filter(
-          (cl) => (cl as any).campuses?.id === campus.id
+          (cl) => (cl as any).campuses?.id === campus.id,
         );
-
         if (campusClasses.length === 0) {
+          if (
+            !matches(region.name) &&
+            !matches(campus.name) &&
+            !matches(campus.city ?? "")
+          )
+            continue;
           rows.push({
             key: `c-${campus.id}`,
-            region: region.name,
-            campus: `${campus.name} — ${campus.city}`,
+            campus: campus.name,
+            city: campus.city,
             className: "—",
+            editTarget: {
+              type: "campus",
+              id: campus.id,
+              name: campus.name,
+              city: campus.city,
+              region_id: (campus as any).region_id ?? null,
+            },
             deleteType: "campus",
             deleteId: campus.id,
           });
         } else {
           for (const cls of campusClasses) {
+            if (
+              !matches(region.name) &&
+              !matches(campus.name) &&
+              !matches(campus.city ?? "") &&
+              !matches(cls.name)
+            )
+              continue;
             rows.push({
               key: `cl-${cls.id}`,
-              region: region.name,
-              campus: `${campus.name} — ${campus.city}`,
+              campus: campus.name,
+              city: campus.city,
               className: cls.name,
+              editTarget: {
+                type: "class",
+                id: cls.id,
+                name: cls.name,
+                campus_id: (cls as any).campus_id,
+              },
               deleteType: "class",
               deleteId: cls.id,
             });
@@ -187,38 +311,157 @@ function buildTableRows(
         }
       }
     }
-  }
 
-  // Campuses without region
-  const orphanCampuses = campuses.filter((c) => !(c as any).regions);
-  for (const campus of orphanCampuses) {
-    const campusClasses = classes.filter(
-      (cl) => (cl as any).campuses?.id === campus.id
-    );
-    if (campusClasses.length === 0) {
-      rows.push({
-        key: `oc-${campus.id}`,
-        region: "—",
-        campus: `${campus.name} — ${campus.city}`,
-        className: "—",
-        deleteType: "campus",
-        deleteId: campus.id,
-      });
-    } else {
-      for (const cls of campusClasses) {
-        rows.push({
-          key: `ocl-${cls.id}`,
-          region: "—",
-          campus: `${campus.name} — ${campus.city}`,
-          className: cls.name,
-          deleteType: "class",
-          deleteId: cls.id,
-        });
-      }
+    if (rows.length > 0) {
+      groups.push({ region: { id: region.id, name: region.name }, rows });
     }
   }
 
-  return rows;
+  return groups;
+}
+
+function EditDialog({
+  target,
+  onClose,
+  regions,
+  campuses,
+  queryClient,
+}: {
+  target: EditTarget;
+  onClose: () => void;
+  regions: any[];
+  campuses: any[];
+  queryClient: any;
+}) {
+  const [name, setName] = useState("");
+  const [city, setCity] = useState("");
+  const [regionId, setRegionId] = useState<string>("");
+  const [campusId, setCampusId] = useState<string>("");
+
+  // Sync state when target changes
+  useMemo(() => {
+    if (!target) return;
+    setName(target.name);
+    if (target.type === "campus") {
+      setCity(target.city);
+      setRegionId(target.region_id ?? "");
+    } else if (target.type === "class") {
+      setCampusId(target.campus_id);
+    }
+  }, [target]);
+
+  const save = useMutation({
+    mutationFn: async () => {
+      if (!target) return;
+      if (target.type === "region") {
+        const { error } = await supabase
+          .from("regions")
+          .update({ name: name.trim() })
+          .eq("id", target.id);
+        if (error) throw error;
+      } else if (target.type === "campus") {
+        const { error } = await supabase
+          .from("campuses")
+          .update({
+            name: name.trim(),
+            city: city.trim(),
+            region_id: regionId || null,
+          })
+          .eq("id", target.id);
+        if (error) throw error;
+      } else if (target.type === "class") {
+        const { error } = await supabase
+          .from("classes")
+          .update({ name: name.trim(), campus_id: campusId })
+          .eq("id", target.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["regions"] });
+      queryClient.invalidateQueries({ queryKey: ["campuses-all"] });
+      queryClient.invalidateQueries({ queryKey: ["classes-all"] });
+      toast.success("Updated");
+      onClose();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  if (!target) return null;
+
+  return (
+    <Dialog open={!!target} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            Edit {target.type.charAt(0).toUpperCase() + target.type.slice(1)}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          {target.type === "campus" && (
+            <div className="space-y-1">
+              <Label>Region</Label>
+              <Select value={regionId} onValueChange={setRegionId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select region" />
+                </SelectTrigger>
+                <SelectContent>
+                  {regions.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {target.type === "class" && (
+            <div className="space-y-1">
+              <Label>Campus</Label>
+              <Select value={campusId} onValueChange={setCampusId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select campus" />
+                </SelectTrigger>
+                <SelectContent>
+                  {campuses.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name} — {c.city}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <div className="space-y-1">
+            <Label>Name</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          {target.type === "campus" && (
+            <div className="space-y-1">
+              <Label>City</Label>
+              <Input value={city} onChange={(e) => setCity(e.target.value)} />
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            onClick={() => save.mutate()}
+            disabled={
+              save.isPending ||
+              !name.trim() ||
+              (target.type === "campus" && !city.trim()) ||
+              (target.type === "class" && !campusId)
+            }
+          >
+            Save
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function DeleteButton({
