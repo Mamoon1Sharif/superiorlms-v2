@@ -123,6 +123,7 @@ function EditTeacherDialog({ teacher, open, onOpenChange }: { teacher: any; open
   const [regionId, setRegionId] = useState("");
   const [campusId, setCampusId] = useState(teacher.campus_id || "");
   const [classId, setClassId] = useState("");
+  const [sectionId, setSectionId] = useState("");
   const [saving, setSaving] = useState(false);
 
   const { data: regions } = useQuery({
