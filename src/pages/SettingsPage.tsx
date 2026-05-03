@@ -8,20 +8,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchAppSettings, applyFavicon } from "@/lib/appSettings";
 import { Loader2, Upload, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
+import { Slider } from "@/components/ui/slider";
 
 export default function SettingsPage() {
   const [loginBg, setLoginBg] = useState<string | null>(null);
   const [favicon, setFavicon] = useState<string | null>(null);
-  const [uploading, setUploading] = useState<"bg" | "fav" | null>(null);
+  const [logo, setLogo] = useState<string | null>(null);
+  const [logoSize, setLogoSize] = useState<number>(44);
+  const [savingSize, setSavingSize] = useState(false);
+  const [uploading, setUploading] = useState<"bg" | "fav" | "logo" | null>(null);
 
   useEffect(() => {
     fetchAppSettings().then((s) => {
       setLoginBg(s.login_background_url);
       setFavicon(s.favicon_url);
+      setLogo(s.logo_url);
+      setLogoSize(s.logo_size);
     });
   }, []);
 
-  const upload = async (file: File, kind: "bg" | "fav") => {
+  const upload = async (file: File, kind: "bg" | "fav" | "logo") => {
     if (!file.type.startsWith("image/")) { toast.error("Please upload an image"); return; }
     if (file.size > 5 * 1024 * 1024) { toast.error("Image must be < 5MB"); return; }
     setUploading(kind);
@@ -33,7 +39,7 @@ export default function SettingsPage() {
       const { data } = supabase.storage.from("app-assets").getPublicUrl(path);
       const url = data.publicUrl;
 
-      const column = kind === "bg" ? "login_background_url" : "favicon_url";
+      const column = kind === "bg" ? "login_background_url" : kind === "fav" ? "favicon_url" : "logo_url";
       const { error: updErr } = await (supabase as any)
         .from("app_settings")
         .update({ [column]: url, updated_at: new Date().toISOString() })
@@ -41,12 +47,29 @@ export default function SettingsPage() {
       if (updErr) throw updErr;
 
       if (kind === "bg") setLoginBg(url);
-      else { setFavicon(url); applyFavicon(url); }
-      toast.success(kind === "bg" ? "Login background updated" : "Favicon updated");
+      else if (kind === "fav") { setFavicon(url); applyFavicon(url); }
+      else setLogo(url);
+      toast.success("Updated");
     } catch (err: any) {
       toast.error(err.message || "Upload failed");
     } finally {
       setUploading(null);
+    }
+  };
+
+  const saveLogoSize = async (size: number) => {
+    setSavingSize(true);
+    try {
+      const { error } = await (supabase as any)
+        .from("app_settings")
+        .update({ logo_size: size, updated_at: new Date().toISOString() })
+        .eq("id", true);
+      if (error) throw error;
+      toast.success("Logo size saved");
+    } catch (err: any) {
+      toast.error(err.message || "Failed");
+    } finally {
+      setSavingSize(false);
     }
   };
 
