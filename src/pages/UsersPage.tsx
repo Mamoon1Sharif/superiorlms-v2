@@ -643,6 +643,7 @@ function EditCampusAdminDialog({ campusAdmin, open, onOpenChange }: { campusAdmi
 
 function CampusAdminTable() {
   const [editCampusAdmin, setEditCampusAdmin] = useState<any>(null);
+  const [page, setPage] = useState(1);
 
   const { data: campusAdmins, isLoading, error } = useQuery({
     queryKey: ["campus-admins"],
