@@ -716,13 +716,21 @@ function AddCampusCard({
 
 function AddClassCard({
   queryClient,
+  regions,
   campuses,
 }: {
   queryClient: any;
+  regions: any[];
   campuses: any[];
 }) {
   const [name, setName] = useState("");
+  const [regionId, setRegionId] = useState("");
   const [campusId, setCampusId] = useState("");
+
+  const filteredCampuses = useMemo(
+    () => (regionId ? campuses.filter((c) => c.region_id === regionId) : campuses),
+    [campuses, regionId],
+  );
 
   const add = useMutation({
     mutationFn: async () => {
@@ -746,12 +754,22 @@ function AddClassCard({
         <CardTitle className="text-sm">Add Class</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        <Select value={regionId} onValueChange={(v) => { setRegionId(v); setCampusId(""); }}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select region (optional)" />
+          </SelectTrigger>
+          <SelectContent>
+            {regions.map((r) => (
+              <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select value={campusId} onValueChange={setCampusId}>
           <SelectTrigger>
             <SelectValue placeholder="Select campus" />
           </SelectTrigger>
           <SelectContent>
-            {campuses.map((c) => (
+            {filteredCampuses.map((c) => (
               <SelectItem key={c.id} value={c.id}>
                 {c.name} — {c.city}
               </SelectItem>
@@ -771,6 +789,104 @@ function AddClassCard({
           disabled={add.isPending || !name.trim() || !campusId}
         >
           <Plus className="h-4 w-4 mr-1" /> Add Class
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function AddSectionCard({
+  queryClient,
+  regions,
+  campuses,
+  classes,
+}: {
+  queryClient: any;
+  regions: any[];
+  campuses: any[];
+  classes: any[];
+}) {
+  const [name, setName] = useState("");
+  const [regionId, setRegionId] = useState("");
+  const [campusId, setCampusId] = useState("");
+  const [classId, setClassId] = useState("");
+
+  const filteredCampuses = useMemo(
+    () => (regionId ? campuses.filter((c) => c.region_id === regionId) : campuses),
+    [campuses, regionId],
+  );
+  const filteredClasses = useMemo(
+    () => (campusId ? classes.filter((c) => c.campus_id === campusId) : classes),
+    [classes, campusId],
+  );
+
+  const add = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("sections").insert({
+        name: name.trim(),
+        class_id: classId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sections-all"] });
+      setName("");
+      toast.success("Section added");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm">Add Section</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <Select value={regionId} onValueChange={(v) => { setRegionId(v); setCampusId(""); setClassId(""); }}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select region (optional)" />
+          </SelectTrigger>
+          <SelectContent>
+            {regions.map((r) => (
+              <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={campusId} onValueChange={(v) => { setCampusId(v); setClassId(""); }}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select campus" />
+          </SelectTrigger>
+          <SelectContent>
+            {filteredCampuses.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.name} — {c.city}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={classId} onValueChange={setClassId}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select class" />
+          </SelectTrigger>
+          <SelectContent>
+            {filteredClasses.map((c) => (
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Input
+          placeholder="e.g. Section A"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && name.trim() && classId && add.mutate()}
+        />
+        <Button
+          size="sm"
+          className="w-full"
+          onClick={() => name.trim() && classId && add.mutate()}
+          disabled={add.isPending || !name.trim() || !classId}
+        >
+          <Plus className="h-4 w-4 mr-1" /> Add Section
         </Button>
       </CardContent>
     </Card>
