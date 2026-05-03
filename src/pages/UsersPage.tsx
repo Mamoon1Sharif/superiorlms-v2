@@ -254,17 +254,17 @@ function EditTeacherDialog({ teacher, open, onOpenChange }: { teacher: any; open
               <div className="flex flex-wrap gap-1.5">
                 {currentAssignments.map((a: any) => (
                   <Badge key={a.id} variant="secondary" className="text-xs cursor-pointer" onClick={() => removeAssignment(a.id)}>
-                    {a.classes?.campuses?.name} · {a.classes?.name} ✕
+                    {a.classes?.campuses?.name} · {a.classes?.name}{a.sections?.name ? ` · ${a.sections.name}` : " · All sections"} ✕
                   </Badge>
                 ))}
               </div>
             ) : (
               <p className="text-xs text-muted-foreground">No classes assigned</p>
             )}
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-xs">Region</Label>
-                <Select value={regionId} onValueChange={(v) => { setRegionId(v); setCampusId(""); setClassId(""); }}>
+                <Select value={regionId} onValueChange={(v) => { setRegionId(v); setCampusId(""); setClassId(""); setSectionId(""); }}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Region" /></SelectTrigger>
                   <SelectContent>
                     {regions?.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
@@ -273,7 +273,7 @@ function EditTeacherDialog({ teacher, open, onOpenChange }: { teacher: any; open
               </div>
               <div>
                 <Label className="text-xs">Campus</Label>
-                <Select value={campusId} onValueChange={(v) => { setCampusId(v); setClassId(""); }} disabled={!regionId}>
+                <Select value={campusId} onValueChange={(v) => { setCampusId(v); setClassId(""); setSectionId(""); }} disabled={!regionId}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Campus" /></SelectTrigger>
                   <SelectContent>
                     {campuses?.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
@@ -282,10 +282,19 @@ function EditTeacherDialog({ teacher, open, onOpenChange }: { teacher: any; open
               </div>
               <div>
                 <Label className="text-xs">Class</Label>
-                <Select value={classId} onValueChange={setClassId} disabled={!campusId}>
+                <Select value={classId} onValueChange={(v) => { setClassId(v); setSectionId(""); }} disabled={!campusId}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Class" /></SelectTrigger>
                   <SelectContent>
                     {classes?.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Section (optional)</Label>
+                <Select value={sectionId} onValueChange={setSectionId} disabled={!classId || !sectionsList?.length}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder={sectionsList?.length ? "All sections" : "No sections"} /></SelectTrigger>
+                  <SelectContent>
+                    {sectionsList?.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
