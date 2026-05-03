@@ -36,19 +36,10 @@ export default function EditCourse() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
-  const [selectedCampuses, setSelectedCampuses] = useState<string[]>([]);
   const [modules, setModules] = useState<ModuleData[]>([]);
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
-  const { data: campuses } = useQuery({
-    queryKey: ["campuses"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("campuses").select("id, name, city");
-      if (error) throw error;
-      return data;
-    },
-  });
 
   const { data: course } = useQuery({
     queryKey: ["course-edit", id],
