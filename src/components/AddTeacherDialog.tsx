@@ -190,10 +190,10 @@ export default function AddTeacherDialog() {
 
           <div className="border rounded-lg p-3 space-y-3">
             <p className="text-sm font-medium">Assign Classes</p>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-xs">Region</Label>
-                <Select value={regionId} onValueChange={(v) => { setRegionId(v); setCampusId(""); setClassId(""); }}>
+                <Select value={regionId} onValueChange={(v) => { setRegionId(v); setCampusId(""); setClassId(""); setSectionId(""); }}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Region" /></SelectTrigger>
                   <SelectContent>
                     {regions?.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
@@ -202,7 +202,7 @@ export default function AddTeacherDialog() {
               </div>
               <div>
                 <Label className="text-xs">Campus</Label>
-                <Select value={campusId} onValueChange={(v) => { setCampusId(v); setClassId(""); }} disabled={!regionId}>
+                <Select value={campusId} onValueChange={(v) => { setCampusId(v); setClassId(""); setSectionId(""); }} disabled={!regionId}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Campus" /></SelectTrigger>
                   <SelectContent>
                     {campuses?.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
@@ -211,10 +211,19 @@ export default function AddTeacherDialog() {
               </div>
               <div>
                 <Label className="text-xs">Class</Label>
-                <Select value={classId} onValueChange={setClassId} disabled={!campusId}>
+                <Select value={classId} onValueChange={(v) => { setClassId(v); setSectionId(""); }} disabled={!campusId}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Class" /></SelectTrigger>
                   <SelectContent>
                     {classes?.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Section (optional)</Label>
+                <Select value={sectionId} onValueChange={setSectionId} disabled={!classId || !sectionsList?.length}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder={sectionsList?.length ? "All sections" : "No sections"} /></SelectTrigger>
+                  <SelectContent>
+                    {sectionsList?.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -224,11 +233,14 @@ export default function AddTeacherDialog() {
             </Button>
             {assignments.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
-                {assignments.map((a) => (
-                  <Badge key={a.classId} variant="secondary" className="text-xs cursor-pointer" onClick={() => removeAssignment(a.classId)}>
-                    {a.campusName} · {a.className} ✕
-                  </Badge>
-                ))}
+                {assignments.map((a) => {
+                  const key = `${a.classId}::${a.sectionId || "all"}`;
+                  return (
+                    <Badge key={key} variant="secondary" className="text-xs cursor-pointer" onClick={() => removeAssignment(key)}>
+                      {a.campusName} · {a.className}{a.sectionName ? ` · ${a.sectionName}` : " · All sections"} ✕
+                    </Badge>
+                  );
+                })}
               </div>
             )}
           </div>
