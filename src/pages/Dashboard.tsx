@@ -24,6 +24,15 @@ const useCount = (table: string) =>
   });
 
 export default function Dashboard() {
+  const [studentsRegionId, setStudentsRegionId] = useState<string | null>(null);
+  const { data: regions } = useQuery({
+    queryKey: ["regions"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("regions").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
   const { data: campuses } = useQuery({
     queryKey: ["campuses"],
     queryFn: async () => {
