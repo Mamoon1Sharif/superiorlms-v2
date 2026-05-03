@@ -231,8 +231,9 @@ interface GroupedRow {
   campus: string;
   city: string;
   className: string;
+  section: string;
   editTarget: EditTarget;
-  deleteType?: "campus" | "class";
+  deleteType?: "campus" | "class" | "section";
   deleteId?: string;
 }
 
@@ -245,16 +246,14 @@ function buildGrouped(
   regions: any[],
   campuses: any[],
   classes: any[],
+  sections: any[],
   search: string,
 ): RegionGroup[] {
   const q = search.trim().toLowerCase();
   const matches = (s: string) => !q || s.toLowerCase().includes(q);
 
   const groups: RegionGroup[] = [];
-  const allRegions = [
-    ...regions,
-    { id: "__none__", name: "—" },
-  ];
+  const allRegions = [...regions, { id: "__none__", name: "—" }];
 
   for (const region of allRegions) {
     const regionCampuses =
@@ -272,6 +271,7 @@ function buildGrouped(
         campus: "—",
         city: "—",
         className: "—",
+        section: "—",
         editTarget: null,
       });
     } else {
@@ -291,6 +291,7 @@ function buildGrouped(
             campus: campus.name,
             city: campus.city,
             className: "—",
+            section: "—",
             editTarget: {
               type: "campus",
               id: campus.id,
@@ -303,27 +304,57 @@ function buildGrouped(
           });
         } else {
           for (const cls of campusClasses) {
-            if (
-              !matches(region.name) &&
-              !matches(campus.name) &&
-              !matches(campus.city ?? "") &&
-              !matches(cls.name)
-            )
-              continue;
-            rows.push({
-              key: `cl-${cls.id}`,
-              campus: campus.name,
-              city: campus.city,
-              className: cls.name,
-              editTarget: {
-                type: "class",
-                id: cls.id,
-                name: cls.name,
-                campus_id: (cls as any).campus_id,
-              },
-              deleteType: "class",
-              deleteId: cls.id,
-            });
+            const classSections = sections.filter((s) => s.class_id === cls.id);
+            if (classSections.length === 0) {
+              if (
+                !matches(region.name) &&
+                !matches(campus.name) &&
+                !matches(campus.city ?? "") &&
+                !matches(cls.name)
+              )
+                continue;
+              rows.push({
+                key: `cl-${cls.id}`,
+                campus: campus.name,
+                city: campus.city,
+                className: cls.name,
+                section: "—",
+                editTarget: {
+                  type: "class",
+                  id: cls.id,
+                  name: cls.name,
+                  campus_id: (cls as any).campus_id,
+                },
+                deleteType: "class",
+                deleteId: cls.id,
+              });
+            } else {
+              for (const sec of classSections) {
+                if (
+                  !matches(region.name) &&
+                  !matches(campus.name) &&
+                  !matches(campus.city ?? "") &&
+                  !matches(cls.name) &&
+                  !matches(sec.name)
+                )
+                  continue;
+                rows.push({
+                  key: `sec-${sec.id}`,
+                  campus: campus.name,
+                  city: campus.city,
+                  className: cls.name,
+                  section: sec.name,
+                  editTarget: {
+                    type: "section",
+                    id: sec.id,
+                    name: sec.name,
+                    class_id: sec.class_id,
+                  },
+                  deleteType: "section",
+                  deleteId: sec.id,
+                });
+              }
+            }
           }
         }
       }
