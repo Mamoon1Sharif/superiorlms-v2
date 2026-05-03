@@ -134,13 +134,14 @@ export default function InstituteManagement() {
                     <TableHead>Campus</TableHead>
                     <TableHead>City</TableHead>
                     <TableHead>Class</TableHead>
+                    <TableHead>Section</TableHead>
                     <TableHead className="w-[110px]">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {grouped.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                         {search ? "No matches found." : "No data yet. Add regions, campuses, and classes to get started."}
                       </TableCell>
                     </TableRow>
@@ -180,6 +181,7 @@ export default function InstituteManagement() {
                           <TableCell>{row.campus}</TableCell>
                           <TableCell>{row.city}</TableCell>
                           <TableCell>{row.className}</TableCell>
+                          <TableCell>{row.section}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">
                               {row.editTarget && (
@@ -217,6 +219,7 @@ export default function InstituteManagement() {
         onClose={() => setEditTarget(null)}
         regions={regions ?? []}
         campuses={campuses ?? []}
+        classes={classes ?? []}
         queryClient={queryClient}
       />
     </div>
