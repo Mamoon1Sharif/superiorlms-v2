@@ -116,6 +116,46 @@ export default function SettingsPage() {
             </label>
           </div>
 
+          {/* Logo */}
+          <div className="space-y-3 pt-4 border-t border-border">
+            <Label>Organization Logo</Label>
+            <p className="text-xs text-muted-foreground">Shown on the login screen left panel. Transparent PNG recommended.</p>
+            <div className="flex items-center gap-4 p-4 rounded-lg bg-primary/90">
+              {logo ? (
+                <img src={logo} alt="Logo preview" style={{ height: logoSize, width: "auto" }} className="object-contain" />
+              ) : (
+                <div className="h-11 w-11 rounded-md border-2 border-dashed border-white/40 flex items-center justify-center">
+                  <ImageIcon className="h-5 w-5 text-white/60" />
+                </div>
+              )}
+            </div>
+            <label className="inline-flex">
+              <Button type="button" variant="outline" size="sm" asChild disabled={uploading === "logo"}>
+                <span className="cursor-pointer">
+                  {uploading === "logo" ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
+                  {logo ? "Replace logo" : "Upload logo"}
+                </span>
+              </Button>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={uploading === "logo"}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f, "logo"); e.target.value = ""; }}
+              />
+            </label>
+
+            <div className="space-y-2 pt-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Logo height: {logoSize}px</Label>
+                <Button type="button" size="sm" variant="ghost" disabled={savingSize} onClick={() => saveLogoSize(logoSize)}>
+                  {savingSize ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save size"}
+                </Button>
+              </div>
+              <Slider min={24} max={120} step={2} value={[logoSize]} onValueChange={(v) => setLogoSize(v[0])} />
+            </div>
+          </div>
+
           {/* Favicon */}
           <div className="space-y-2 pt-4 border-t border-border">
             <Label>Favicon</Label>
