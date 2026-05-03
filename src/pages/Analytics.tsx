@@ -113,13 +113,16 @@ export default function Analytics() {
     })
     .filter((r) => r.enrollments > 0 || r.id !== NO_REGION);
 
+  const avgProgressForCampus = (cid: string) => {
+    const arr = studentProgressMap?.byCampus?.[cid] ?? [];
+    return arr.length ? Math.round(arr.reduce((s, v) => s + v, 0) / arr.length) : 0;
+  };
+
   const progressByRegion = regionList
     .map((r: any) => {
       const cs = campusesInRegion(r.id);
-      const allEnr = cs.flatMap((c: any) => enrollmentsForCampus(c.id));
-      const avg = allEnr.length > 0
-        ? Math.round(allEnr.reduce((s, e: any) => s + e.progress, 0) / allEnr.length)
-        : 0;
+      const all = cs.flatMap((c: any) => studentProgressMap?.byCampus?.[c.id] ?? []);
+      const avg = all.length > 0 ? Math.round(all.reduce((s, v) => s + v, 0) / all.length) : 0;
       return { id: r.id, region: r.name, avgProgress: avg };
     })
     .filter((r) => r.id !== NO_REGION || campusesInRegion(NO_REGION).length > 0);
@@ -131,13 +134,10 @@ export default function Analytics() {
     }));
 
   const progressByCampusInRegion = (rid: string) =>
-    campusesInRegion(rid).map((c: any) => {
-      const ce = enrollmentsForCampus(c.id);
-      const avg = ce.length > 0
-        ? Math.round(ce.reduce((s, e: any) => s + e.progress, 0) / ce.length)
-        : 0;
-      return { campus: labelFor(c), avgProgress: avg };
-    });
+    campusesInRegion(rid).map((c: any) => ({
+      campus: labelFor(c),
+      avgProgress: avgProgressForCampus(c.id),
+    }));
 
   const regionName = (rid: string | null) =>
     regionList.find((r: any) => r.id === rid)?.name ?? "";
