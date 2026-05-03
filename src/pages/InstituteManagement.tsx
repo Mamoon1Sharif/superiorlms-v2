@@ -23,6 +23,7 @@ type EditTarget =
   | { type: "region"; id: string; name: string }
   | { type: "campus"; id: string; name: string; city: string; region_id: string | null }
   | { type: "class"; id: string; name: string; campus_id: string }
+  | { type: "section"; id: string; name: string; class_id: string }
   | null;
 
 
