@@ -27,9 +27,15 @@ export default function Login() {
   const [quoteIndex] = useState(() => Math.floor(Math.random() * quotes.length));
   const [stats, setStats] = useState({ courses: 0, students: 0, campuses: 0 });
   const [bgUrl, setBgUrl] = useState<string>(collegeBg);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoSize, setLogoSize] = useState<number>(44);
 
   useEffect(() => {
-    fetchAppSettings().then((s) => { if (s.login_background_url) setBgUrl(s.login_background_url); }).catch(() => {});
+    fetchAppSettings().then((s) => {
+      if (s.login_background_url) setBgUrl(s.login_background_url);
+      setLogoUrl(s.logo_url);
+      setLogoSize(s.logo_size);
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
