@@ -85,7 +85,6 @@ export default function EditCourse() {
     }
   }, [course, loaded]);
 
-  const toggleCampus = (cid: string) => setSelectedCampuses((p) => p.includes(cid) ? p.filter((c) => c !== cid) : [...p, cid]);
   const addModule = () => setModules((p) => [...p, { title: "", videos: [], questions: [], assignment: null }]);
   const removeModule = (i: number) => setModules((p) => p.filter((_, idx) => idx !== i));
   const updateModule = (i: number, u: Partial<ModuleData>) => setModules((p) => p.map((m, idx) => idx === i ? { ...m, ...u } : m));
@@ -95,10 +94,6 @@ export default function EditCourse() {
     setSaving(true);
     try {
       await supabase.from("courses").update({ title, description, cover_url: coverUrl }).eq("id", id!);
-      await supabase.from("course_campuses").delete().eq("course_id", id!);
-      if (selectedCampuses.length > 0) {
-        await supabase.from("course_campuses").insert(selectedCampuses.map((cid) => ({ course_id: id!, campus_id: cid })));
-      }
       await supabase.from("modules").delete().eq("course_id", id!);
 
       for (let i = 0; i < modules.length; i++) {
