@@ -62,6 +62,10 @@ export default function VideoPlayer({ lesson, completed, onComplete }: VideoPlay
               allowFullScreen
             />
           </div>
+        ) : lesson.thumbnail_url ? (
+          <div className="aspect-video rounded-lg overflow-hidden bg-muted">
+            <img src={lesson.thumbnail_url} alt={lesson.title} className="w-full h-full object-cover" />
+          </div>
         ) : (
           <div className="aspect-video rounded-lg bg-muted flex items-center justify-center">
             <p className="text-muted-foreground text-sm">No video URL provided</p>
