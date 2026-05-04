@@ -11,10 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Video, HelpCircle, FileText, ArrowLeft, Save, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import CoverImageUpload from "@/components/CoverImageUpload";
+import FileUploadField from "@/components/FileUploadField";
 
-interface VideoLesson { title: string; description: string; youtube_url: string; }
+interface VideoLesson { title: string; description: string; youtube_url: string; thumbnail_url: string | null; }
 interface QuizQuestion { question: string; question_type: "mcq" | "true_false" | "fill_blank"; options: string[]; correct_answer: number; correct_answer_text: string; }
-interface AssignmentDetail { instructions: string; deadline: string; max_marks: number; max_file_size_mb: number; }
+interface AssignmentDetail { instructions: string; pdf_url: string | null; max_marks: number; max_file_size_mb: number; }
 interface ModuleData {
   id?: string;
   title: string;
@@ -23,11 +24,11 @@ interface ModuleData {
   assignment: AssignmentDetail | null;
 }
 
-const emptyVideo = (): VideoLesson => ({ title: "", description: "", youtube_url: "" });
+const emptyVideo = (): VideoLesson => ({ title: "", description: "", youtube_url: "", thumbnail_url: null });
 const emptyMcq = (): QuizQuestion => ({ question: "", question_type: "mcq", options: ["", "", "", ""], correct_answer: 0, correct_answer_text: "" });
 const emptyTrueFalse = (): QuizQuestion => ({ question: "", question_type: "true_false", options: ["True", "False"], correct_answer: 0, correct_answer_text: "" });
 const emptyFillBlank = (): QuizQuestion => ({ question: "", question_type: "fill_blank", options: [], correct_answer: 0, correct_answer_text: "" });
-const emptyAssignment = (): AssignmentDetail => ({ instructions: "", deadline: "", max_marks: 100, max_file_size_mb: 10 });
+const emptyAssignment = (): AssignmentDetail => ({ instructions: "", pdf_url: null, max_marks: 100, max_file_size_mb: 10 });
 
 export default function EditCourse() {
   const { id } = useParams();
