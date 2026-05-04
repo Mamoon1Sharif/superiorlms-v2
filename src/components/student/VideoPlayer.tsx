@@ -9,6 +9,7 @@ interface VideoPlayerProps {
     title: string;
     description: string | null;
     youtube_url: string | null;
+    thumbnail_url?: string | null;
   };
   completed: boolean;
   onComplete: () => void;
