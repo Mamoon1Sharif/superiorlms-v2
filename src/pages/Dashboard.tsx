@@ -127,8 +127,6 @@ export default function Dashboard() {
     { name: "Not Started", value: notStarted || 1, color: "hsl(210, 16%, 82%)" },
   ];
 
-  const recentEnrollments = enrollments?.slice(0, 5) ?? [];
-
   return (
     <div className="space-y-6">
       <div>

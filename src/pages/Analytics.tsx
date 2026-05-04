@@ -32,7 +32,16 @@ export default function Analytics() {
   const { data: enrollments } = useQuery({
     queryKey: ["enrollments-analytics"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("program_enrollments").select("*, students(campus_id)");
+      const { data, error } = await supabase.from("program_enrollments").select("status, student_id");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: enrollmentStudents } = useQuery({
+    queryKey: ["enrollment-students-analytics"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("students").select("id, campus_id");
       if (error) throw error;
       return data;
     },
@@ -102,8 +111,12 @@ export default function Analytics() {
   const campusesInRegion = (rid: string) =>
     (campuses ?? []).filter((c: any) => (c.region_id ?? NO_REGION) === rid);
 
+  const studentCampusById = new Map(
+    (enrollmentStudents ?? []).map((s: any) => [s.id, s.campus_id])
+  );
+
   const enrollmentsForCampus = (cid: string) =>
-    (enrollments ?? []).filter((e: any) => e.students?.campus_id === cid);
+    (enrollments ?? []).filter((e: any) => studentCampusById.get(e.student_id) === cid);
 
   const enrollmentByRegion = regionList
     .map((r: any) => {
