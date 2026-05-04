@@ -140,11 +140,11 @@ export default function StudentDashboard() {
           </div>
 
           {/* Right: image */}
-          <div className="bg-[#0b1f4a] flex items-center justify-center p-4 order-1 md:order-2">
+          <div className={`bg-[#0b1f4a] flex items-center justify-center p-4 order-1 md:order-2 ${fullyApproved ? "" : "md:col-span-3"}`}>
             <img
               src={digitalSkillProgram}
               alt="Digital Skill Certification — 8 in-demand skills"
-              className="w-full h-auto object-contain max-h-[320px]"
+              className={`w-full h-auto object-contain ${fullyApproved ? "max-h-[320px]" : "max-h-[560px]"}`}
             />
           </div>
         </div>
