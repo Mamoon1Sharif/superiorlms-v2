@@ -196,9 +196,7 @@ export default function Login() {
         <div className="w-full max-w-md space-y-8">
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center justify-center gap-3 mb-4">
-            <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center">
-              <GraduationCap className="h-6 w-6 text-primary-foreground" />
-            </div>
+            <img src={brandLogo} alt="Superior Group of Colleges logo" width={48} height={48} className="h-12 w-12 object-contain" />
             <div>
               <h2 className="font-bold text-lg text-foreground">Superior Group</h2>
               <p className="text-xs text-muted-foreground">of Colleges</p>
