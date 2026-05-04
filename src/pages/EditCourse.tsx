@@ -68,7 +68,7 @@ export default function EditCourse() {
           id: m.id,
           title: m.title,
           videos: (m.lessons ?? []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((l: any) => ({
-            title: l.title, description: l.description ?? "", youtube_url: l.youtube_url ?? "",
+            title: l.title, description: l.description ?? "", youtube_url: l.youtube_url ?? "", thumbnail_url: l.thumbnail_url ?? null,
           })),
           questions: (m.quiz_questions ?? []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((q: any) => ({
             question: q.question,
@@ -78,7 +78,7 @@ export default function EditCourse() {
             correct_answer_text: q.correct_answer_text ?? "",
           })),
           assignment: m.assignment_details?.[0]
-            ? { instructions: m.assignment_details[0].instructions, deadline: m.assignment_details[0].deadline?.slice(0, 16) ?? "", max_marks: m.assignment_details[0].max_marks, max_file_size_mb: m.assignment_details[0].max_file_size_mb ?? 10 }
+            ? { instructions: m.assignment_details[0].instructions, pdf_url: m.assignment_details[0].pdf_url ?? null, max_marks: m.assignment_details[0].max_marks, max_file_size_mb: m.assignment_details[0].max_file_size_mb ?? 10 }
             : null,
         }));
       setModules(mods.length > 0 ? mods : []);
