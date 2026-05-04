@@ -93,9 +93,9 @@ export default function StudentDashboard() {
 
       {/* Program enrollment card */}
       <Card className="overflow-hidden">
-        <div className="grid grid-cols-1 md:grid-cols-2">
+        <div className={`grid grid-cols-1 ${fullyApproved ? "md:grid-cols-2" : "md:grid-cols-4"}`}>
           {/* Left: text content */}
-          <div className="p-6 flex flex-col gap-4 order-2 md:order-1">
+          <div className={`p-6 flex flex-col gap-4 order-2 md:order-1 ${fullyApproved ? "" : "md:col-span-1"}`}>
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
