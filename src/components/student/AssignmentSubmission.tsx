@@ -114,6 +114,50 @@ export default function AssignmentSubmission({ assignment, studentId, completed,
     );
   }
 
+  if (existingSubmission || completed) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-green-500" /> Assignment Submitted
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="p-4 rounded-lg bg-muted/50">
+            <p className="text-sm font-medium mb-1">Your Submission:</p>
+            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+              {existingSubmission?.submission_text || "Submitted"}
+            </p>
+          </div>
+          {existingSubmission?.file_name && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+              <Paperclip className="h-4 w-4 text-primary shrink-0" />
+              <a
+                href={existingSubmission.file_url ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-primary underline truncate"
+              >
+                {existingSubmission.file_name}
+              </a>
+            </div>
+          )}
+          {existingSubmission?.graded && (
+            <div className="flex items-center gap-2">
+              <Award className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">
+                Grade: {existingSubmission.grade}/{assignment.max_marks}
+              </span>
+            </div>
+          )}
+          {existingSubmission && !existingSubmission.graded && (
+            <Badge variant="secondary">Awaiting grading</Badge>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
