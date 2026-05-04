@@ -93,67 +93,61 @@ export default function StudentDashboard() {
 
       {/* Program enrollment card */}
       <Card className="overflow-hidden">
-        {!fullyApproved ? (
-          <div className="bg-[#0b1f4a]">
+        <div className="grid grid-cols-1 md:grid-cols-2">
+          {/* Left: text content */}
+          <div className="p-6 flex flex-col gap-4 order-2 md:order-1">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <Award className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">Digital Skill Certification</CardTitle>
+                  <p className="text-xs text-muted-foreground mt-0.5">A single program covering all available courses</p>
+                </div>
+              </div>
+              {programEnrollment && (
+                <Badge variant={programApproved ? "default" : programEnrollment.status === "Rejected" ? "destructive" : "secondary"}>
+                  {programEnrollment.status}
+                </Badge>
+              )}
+            </div>
+
+            {!programEnrollment ? (
+              <div className="flex items-center justify-between gap-4">
+                <p className="text-sm text-muted-foreground">Apply once to get access to every course in the program.</p>
+                <Button onClick={applyToProgram}>Apply Now</Button>
+              </div>
+            ) : !studentApproved ? (
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-warning/10 border border-warning/20">
+                <Clock className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium">Waiting for campus admin approval</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Your principal will approve your account shortly. You'll then get access to all courses.</p>
+                </div>
+              </div>
+            ) : programEnrollment.status === "Rejected" ? (
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                <p className="text-sm">Your program enrollment was rejected. Please contact your campus admin.</p>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-success/10 border border-success/20">
+                <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
+                <p className="text-sm font-medium">You're enrolled. All published courses below are available to you.</p>
+              </div>
+            )}
+          </div>
+
+          {/* Right: image */}
+          <div className="bg-[#0b1f4a] flex items-center justify-center p-4 order-1 md:order-2">
             <img
               src={digitalSkillProgram}
               alt="Digital Skill Certification — 8 in-demand skills"
-              className="w-full h-auto object-contain max-h-[460px] mx-auto"
+              className="w-full h-auto object-contain max-h-[320px]"
             />
           </div>
-        ) : (
-          <div className="bg-[#0b1f4a] flex justify-center">
-            <img
-              src={digitalSkillProgram}
-              alt="Digital Skill Certification"
-              className="h-24 w-auto object-contain"
-            />
-          </div>
-        )}
-        <CardHeader>
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Award className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <CardTitle className="text-lg">Digital Skill Certification</CardTitle>
-                <p className="text-xs text-muted-foreground mt-0.5">A single program covering all available courses</p>
-              </div>
-            </div>
-            {programEnrollment && (
-              <Badge variant={programApproved ? "default" : programEnrollment.status === "Rejected" ? "destructive" : "secondary"}>
-                {programEnrollment.status}
-              </Badge>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          {!programEnrollment ? (
-            <div className="flex items-center justify-between gap-4">
-              <p className="text-sm text-muted-foreground">Apply once to get access to every course in the program.</p>
-              <Button onClick={applyToProgram}>Apply Now</Button>
-            </div>
-          ) : !studentApproved ? (
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-warning/10 border border-warning/20">
-              <Clock className="h-5 w-5 text-warning shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium">Waiting for campus admin approval</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Your principal will approve your account shortly. You'll then get access to all courses.</p>
-              </div>
-            </div>
-          ) : programEnrollment.status === "Rejected" ? (
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
-              <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-              <p className="text-sm">Your program enrollment was rejected. Please contact your campus admin.</p>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-success/10 border border-success/20">
-              <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
-              <p className="text-sm font-medium">You're enrolled. All published courses below are available to you.</p>
-            </div>
-          )}
-        </CardContent>
+        </div>
       </Card>
 
       {fullyApproved && (
