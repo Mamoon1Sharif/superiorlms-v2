@@ -63,7 +63,7 @@ export default function Dashboard() {
   const { data: enrollments } = useQuery({
     queryKey: ["enrollments"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("program_enrollments").select("status, student_id");
+      const { data, error } = await supabase.from("enrollments").select("*, students(name, campuses(name)), courses(title)");
       if (error) throw error;
       return data;
     },
@@ -87,13 +87,15 @@ export default function Dashboard() {
   const { data: teachersCount } = useCount("teachers");
   const { data: modulesCount } = useCount("modules");
   const { data: lessonsCount } = useCount("lessons");
-  const { data: enrollmentsCount } = useCount("program_enrollments");
+  const { data: enrollmentsCount } = useCount("enrollments");
 
   const totalStudents = students?.length ?? 0;
   const publishedCourses = courses?.filter((c) => c.status === "Published").length ?? 0;
   const totalCampuses = campuses?.length ?? 0;
   const approvedEnrollments = enrollments?.filter((e) => e.status === "Approved") ?? [];
-  const avgProgress = 0;
+  const avgProgress = approvedEnrollments.length > 0
+    ? Math.round(approvedEnrollments.reduce((sum, e) => sum + e.progress, 0) / approvedEnrollments.length)
+    : 0;
 
   const NO_REGION = "__none__";
   const regionList = [...(regions ?? []), { id: NO_REGION, name: "Unassigned" }];
@@ -116,9 +118,9 @@ export default function Dashboard() {
 
   const regionName = (rid: string | null) => regionList.find((r: any) => r.id === rid)?.name ?? "";
 
-  const completed = 0;
-  const inProgress = 0;
-  const notStarted = approvedEnrollments.length;
+  const completed = approvedEnrollments.filter((e) => e.progress >= 100).length;
+  const inProgress = approvedEnrollments.filter((e) => e.progress > 0 && e.progress < 100).length;
+  const notStarted = approvedEnrollments.filter((e) => e.progress === 0).length;
   const courseProgress = [
     { name: "Completed", value: completed || 1, color: "hsl(152, 60%, 42%)" },
     { name: "In Progress", value: inProgress || 1, color: "hsl(199, 89%, 38%)" },
