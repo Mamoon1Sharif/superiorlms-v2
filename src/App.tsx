@@ -32,6 +32,9 @@ import TeacherSetup from "@/pages/teacher/TeacherSetup";
 import CampusAdminDashboard from "@/pages/campus-admin/CampusAdminDashboard";
 import CampusAdminStudents from "@/pages/campus-admin/CampusAdminStudents";
 import CampusAdminStudentDetail from "@/pages/campus-admin/CampusAdminStudentDetail";
+import CampusAdminInstitute from "@/pages/campus-admin/CampusAdminInstitute";
+import CampusAdminTeachers from "@/pages/campus-admin/CampusAdminTeachers";
+import CampusAdminClasses from "@/pages/campus-admin/CampusAdminClasses";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
