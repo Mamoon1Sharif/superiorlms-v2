@@ -10,7 +10,10 @@ export default function CampusAdminLayout() {
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-background">Loading...</div>;
   if (!user) return null;
 
-  const handleSignOut = async () => { await signOut(); navigate("/login"); };
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/login");
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -24,19 +27,34 @@ export default function CampusAdminLayout() {
               <span className="font-bold text-sm tracking-tight">Campus Admin</span>
             </Link>
             <nav className="flex items-center gap-1">
-              <Link to="/campus-admin" className="text-sm px-3 py-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
+              <Link
+                to="/campus-admin"
+                className="text-sm px-3 py-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+              >
                 <LayoutDashboard className="h-3.5 w-3.5" /> Dashboard
               </Link>
-              <Link to="/campus-admin/institute" className="text-sm px-3 py-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
-                <School className="h-3.5 w-3.5" /> Institute
+              <Link
+                to="/campus-admin/institute"
+                className="text-sm px-3 py-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+              >
+                <School className="h-3.5 w-3.5" /> Campus
               </Link>
-              <Link to="/campus-admin/teachers" className="text-sm px-3 py-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
+              <Link
+                to="/campus-admin/teachers"
+                className="text-sm px-3 py-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+              >
                 <GraduationCap className="h-3.5 w-3.5" /> Teachers
               </Link>
-              <Link to="/campus-admin/classes" className="text-sm px-3 py-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
+              <Link
+                to="/campus-admin/classes"
+                className="text-sm px-3 py-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+              >
                 <BookOpen className="h-3.5 w-3.5" /> Classes
               </Link>
-              <Link to="/campus-admin/students" className="text-sm px-3 py-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
+              <Link
+                to="/campus-admin/students"
+                className="text-sm px-3 py-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+              >
                 <Users className="h-3.5 w-3.5" /> Students
               </Link>
             </nav>

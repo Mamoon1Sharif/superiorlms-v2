@@ -34,11 +34,7 @@ export default function CampusAdminInstitute() {
   const { data: classes } = useQuery({
     queryKey: ["ca-classes", campusId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("classes")
-        .select("*")
-        .eq("campus_id", campusId)
-        .order("name");
+      const { data, error } = await supabase.from("classes").select("*").eq("campus_id", campusId).order("name");
       if (error) throw error;
       return data;
     },
@@ -51,11 +47,7 @@ export default function CampusAdminInstitute() {
     queryKey: ["ca-sections", classIds.join(",")],
     queryFn: async () => {
       if (!classIds.length) return [];
-      const { data, error } = await supabase
-        .from("sections")
-        .select("*")
-        .in("class_id", classIds)
-        .order("name");
+      const { data, error } = await supabase.from("sections").select("*").in("class_id", classIds).order("name");
       if (error) throw error;
       return data;
     },
@@ -117,7 +109,7 @@ export default function CampusAdminInstitute() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Institute Management</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Campus Management</h1>
         <p className="text-muted-foreground text-sm mt-1">
           {campus?.name ? `${campus.name} · ` : ""}Manage classes and sections in your campus
         </p>
@@ -125,7 +117,9 @@ export default function CampusAdminInstitute() {
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle className="text-base">Add Class</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-base">Add Class</CardTitle>
+          </CardHeader>
           <CardContent className="space-y-3">
             <div>
               <Label>Class name</Label>
@@ -138,14 +132,22 @@ export default function CampusAdminInstitute() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="text-base">Add Section</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-base">Add Section</CardTitle>
+          </CardHeader>
           <CardContent className="space-y-3">
             <div>
               <Label>Class</Label>
               <Select value={sectionClassId} onValueChange={setSectionClassId}>
-                <SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select class" />
+                </SelectTrigger>
                 <SelectContent>
-                  {classes?.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  {classes?.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -161,7 +163,9 @@ export default function CampusAdminInstitute() {
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Classes & Sections</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base">Classes & Sections</CardTitle>
+        </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
@@ -173,31 +177,48 @@ export default function CampusAdminInstitute() {
             </TableHeader>
             <TableBody>
               {(classes ?? []).length === 0 ? (
-                <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-6">No classes yet</TableCell></TableRow>
-              ) : classes!.map((c) => {
-                const cs = (sections ?? []).filter((s) => s.class_id === c.id);
-                return (
-                  <TableRow key={c.id}>
-                    <TableCell className="font-medium">{c.name}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1.5">
-                        {cs.length === 0 ? <span className="text-xs text-muted-foreground">No sections</span> :
-                          cs.map((s) => (
-                            <span key={s.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-muted text-xs">
-                              {s.name}
-                              <button onClick={() => delSection(s.id)} className="text-muted-foreground hover:text-destructive">×</button>
-                            </span>
-                          ))}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => delClass(c.id)}>
-                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center text-muted-foreground py-6">
+                    No classes yet
+                  </TableCell>
+                </TableRow>
+              ) : (
+                classes!.map((c) => {
+                  const cs = (sections ?? []).filter((s) => s.class_id === c.id);
+                  return (
+                    <TableRow key={c.id}>
+                      <TableCell className="font-medium">{c.name}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1.5">
+                          {cs.length === 0 ? (
+                            <span className="text-xs text-muted-foreground">No sections</span>
+                          ) : (
+                            cs.map((s) => (
+                              <span
+                                key={s.id}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-muted text-xs"
+                              >
+                                {s.name}
+                                <button
+                                  onClick={() => delSection(s.id)}
+                                  className="text-muted-foreground hover:text-destructive"
+                                >
+                                  ×
+                                </button>
+                              </span>
+                            ))
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => delClass(c.id)}>
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </CardContent>
