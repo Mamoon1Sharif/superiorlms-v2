@@ -48,7 +48,11 @@ function StudentProgressRow({ s }: { s: any }) {
     <div className="flex items-center gap-3 py-2">
       <Avatar className="h-8 w-8">
         <AvatarFallback className="text-xs bg-primary/10 text-primary">
-          {(s.name || "?").split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
+          {(s.name || "?")
+            .split(" ")
+            .map((n: string) => n[0])
+            .join("")
+            .slice(0, 2)}
         </AvatarFallback>
       </Avatar>
       <div className="flex-1 min-w-0">
@@ -69,7 +73,9 @@ function SectionCard({ title, to, children, empty }: any) {
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-base">{title}</CardTitle>
         <Button asChild variant="ghost" size="sm" className="h-7 text-xs">
-          <Link to={to}>See more <ArrowRight className="h-3 w-3 ml-1" /></Link>
+          <Link to={to}>
+            See more <ArrowRight className="h-3 w-3 ml-1" />
+          </Link>
         </Button>
       </CardHeader>
       <CardContent className="pt-0">
@@ -86,7 +92,10 @@ export default function CampusAdminDashboard() {
   const { data: studentsCount } = useQuery({
     queryKey: ["ca-students-count", campusId],
     queryFn: async () => {
-      const { count } = await supabase.from("students").select("id", { count: "exact", head: true }).eq("campus_id", campusId);
+      const { count } = await supabase
+        .from("students")
+        .select("id", { count: "exact", head: true })
+        .eq("campus_id", campusId);
       return count ?? 0;
     },
     enabled: !!campusId,
@@ -95,7 +104,11 @@ export default function CampusAdminDashboard() {
   const { data: pendingCount } = useQuery({
     queryKey: ["ca-pending-count", campusId],
     queryFn: async () => {
-      const { count } = await supabase.from("students").select("id", { count: "exact", head: true }).eq("campus_id", campusId).eq("approval_status", "Pending");
+      const { count } = await supabase
+        .from("students")
+        .select("id", { count: "exact", head: true })
+        .eq("campus_id", campusId)
+        .eq("approval_status", "Pending");
       return count ?? 0;
     },
     enabled: !!campusId,
@@ -104,7 +117,11 @@ export default function CampusAdminDashboard() {
   const { data: approvedCount } = useQuery({
     queryKey: ["ca-approved-count", campusId],
     queryFn: async () => {
-      const { count } = await supabase.from("students").select("id", { count: "exact", head: true }).eq("campus_id", campusId).eq("approval_status", "Approved");
+      const { count } = await supabase
+        .from("students")
+        .select("id", { count: "exact", head: true })
+        .eq("campus_id", campusId)
+        .eq("approval_status", "Approved");
       return count ?? 0;
     },
     enabled: !!campusId,
@@ -133,7 +150,12 @@ export default function CampusAdminDashboard() {
   const { data: teachers } = useQuery({
     queryKey: ["ca-dash-teachers", campusId],
     queryFn: async () => {
-      const { data } = await supabase.from("teachers").select("id, name, email").eq("campus_id", campusId).order("created_at", { ascending: false }).limit(5);
+      const { data } = await supabase
+        .from("teachers")
+        .select("id, name, email")
+        .eq("campus_id", campusId)
+        .order("created_at", { ascending: false })
+        .limit(5);
       return data ?? [];
     },
     enabled: !!campusId,
@@ -142,13 +164,18 @@ export default function CampusAdminDashboard() {
   const { data: students } = useQuery({
     queryKey: ["ca-dash-students", campusId],
     queryFn: async () => {
-      const { data } = await supabase.from("students").select("id, name, email, reg_no").eq("campus_id", campusId).eq("approval_status", "Approved").limit(50);
+      const { data } = await supabase
+        .from("students")
+        .select("id, name, email, reg_no")
+        .eq("campus_id", campusId)
+        .eq("approval_status", "Approved")
+        .limit(50);
       return data ?? [];
     },
     enabled: !!campusId,
   });
 
-  const campus = (ca?.campuses as any);
+  const campus = ca?.campuses as any;
   const classesCount = classes?.length;
   const teachersCount = teachers?.length;
 
@@ -169,14 +196,18 @@ export default function CampusAdminDashboard() {
       </div>
 
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
-        <SectionCard title="Recent Teachers" to="/campus-admin/teachers" empty="No teachers yet">
+        <SectionCard title="Campus Teachers" to="/campus-admin/teachers" empty="No teachers yet">
           {(teachers?.length ?? 0) > 0 && (
             <div className="divide-y">
               {teachers!.map((t: any) => (
                 <div key={t.id} className="flex items-center gap-3 py-2">
                   <Avatar className="h-8 w-8">
                     <AvatarFallback className="text-xs bg-success/10 text-success">
-                      {(t.name || "?").split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
+                      {(t.name || "?")
+                        .split(" ")
+                        .map((n: string) => n[0])
+                        .join("")
+                        .slice(0, 2)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
@@ -208,9 +239,7 @@ export default function CampusAdminDashboard() {
         </SectionCard>
 
         <SectionCard title="Top Students by Progress" to="/campus-admin/classes" empty="No approved students yet">
-          {(students?.length ?? 0) > 0 && (
-            <TopStudents students={students!} />
-          )}
+          {(students?.length ?? 0) > 0 && <TopStudents students={students!} />}
         </SectionCard>
       </div>
     </div>
@@ -229,7 +258,9 @@ function TopStudents({ students }: { students: any[] }) {
         .in("student_id", ids)
         .eq("completed", true);
       const counts: Record<string, number> = {};
-      (prog ?? []).forEach((p: any) => { counts[p.student_id] = (counts[p.student_id] ?? 0) + 1; });
+      (prog ?? []).forEach((p: any) => {
+        counts[p.student_id] = (counts[p.student_id] ?? 0) + 1;
+      });
       return [...students].sort((a, b) => (counts[b.id] ?? 0) - (counts[a.id] ?? 0)).slice(0, 5);
     },
     enabled: students.length > 0,
@@ -237,7 +268,9 @@ function TopStudents({ students }: { students: any[] }) {
   const list = ranked ?? students.slice(0, 5);
   return (
     <div className="divide-y">
-      {list.map((s: any) => <StudentProgressRow key={s.id} s={s} />)}
+      {list.map((s: any) => (
+        <StudentProgressRow key={s.id} s={s} />
+      ))}
     </div>
   );
 }
