@@ -102,6 +102,16 @@ export default function CampusAdminClasses() {
     enabled: !!campusId,
   });
 
+  const { data: allSections } = useQuery({
+    queryKey: ["ca-classes-sections", campusId],
+    queryFn: async () => {
+      if (!classes?.length) return [];
+      const { data } = await supabase.from("sections").select("id, name, class_id").in("class_id", classes.map((c: any) => c.id));
+      return data ?? [];
+    },
+    enabled: !!classes?.length,
+  });
+
   if (!classes || classes.length === 0) {
     return (
       <div className="space-y-6">
