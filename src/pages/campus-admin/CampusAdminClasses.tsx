@@ -54,6 +54,7 @@ function StudentRow({ s, isOpen, onToggle }: { s: any; isOpen: boolean; onToggle
 export default function CampusAdminClasses() {
   const { user } = useAuth();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [sectionFilters, setSectionFilters] = useState<Record<string, string>>({});
   const toggle = (id: string) => {
     setExpanded((p) => {
       const n = new Set(p);
