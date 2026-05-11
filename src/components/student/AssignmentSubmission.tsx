@@ -32,13 +32,11 @@ export default function AssignmentSubmission({ assignment, studentId, completed,
   const maxSizeMB = assignment?.max_file_size_mb ?? 10;
   const allowedTypes = [
     "application/pdf",
-    "application/vnd.ms-powerpoint",
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     "application/msword",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "video/mp4",
-    "video/webm",
-    "video/quicktime",
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
   ];
 
   const { data: existingSubmission } = useQuery({
