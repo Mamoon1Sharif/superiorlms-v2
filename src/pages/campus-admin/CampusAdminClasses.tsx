@@ -132,9 +132,27 @@ export default function CampusAdminClasses() {
           {classes.map((c) => <TabsTrigger key={c.id} value={c.id} className="text-xs">{c.name}</TabsTrigger>)}
         </TabsList>
         {classes.map((c) => {
-          const cs = (students ?? []).filter((s: any) => s.class_id === c.id);
+          const classSections = (allSections ?? []).filter((sec: any) => sec.class_id === c.id);
+          const sectionFilter = sectionFilters[c.id] ?? "all";
+          const cs = (students ?? []).filter(
+            (s: any) => s.class_id === c.id && (sectionFilter === "all" || s.section_id === sectionFilter),
+          );
           return (
-            <TabsContent key={c.id} value={c.id} className="mt-4">
+            <TabsContent key={c.id} value={c.id} className="mt-4 space-y-3">
+              {classSections.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Filter by section:</span>
+                  <Select value={sectionFilter} onValueChange={(v) => setSectionFilters((p) => ({ ...p, [c.id]: v }))}>
+                    <SelectTrigger className="w-[180px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All sections</SelectItem>
+                      {classSections.map((sec: any) => (
+                        <SelectItem key={sec.id} value={sec.id}>{sec.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <Card>
                 <CardContent className="p-0">
                   <table className="w-full text-sm">
