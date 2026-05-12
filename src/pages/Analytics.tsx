@@ -155,9 +155,11 @@ export default function Analytics() {
   const regionName = (rid: string | null) =>
     regionList.find((r: any) => r.id === rid)?.name ?? "";
 
+  // Only count enrollments tied to a student with a campus, to match Enrollment Overview table
+  const enrollmentsWithCampus = (enrollments ?? []).filter((e: any) => !!studentCampusById.get(e.student_id));
   const statusCounts = ["Approved", "Pending", "Rejected"].map((s) => ({
     status: s,
-    count: (enrollments ?? []).filter((e) => e.status === s).length,
+    count: enrollmentsWithCampus.filter((e: any) => e.status === s).length,
   }));
 
   return (
