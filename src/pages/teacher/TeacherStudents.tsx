@@ -172,20 +172,31 @@ export default function TeacherStudents() {
           });
           return (
             <TabsContent key={a.class_id} value={a.class_id} className="mt-4 space-y-3">
-              {classSections.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Filter by section:</span>
-                  <Select value={sectionFilter} onValueChange={(v) => setSectionFilters((p) => ({ ...p, [a.class_id]: v }))}>
-                    <SelectTrigger className="w-[180px] h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All sections</SelectItem>
-                      {classSections.map((sec: any) => (
-                        <SelectItem key={sec.id} value={sec.id}>{sec.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative">
+                  <Search className="h-3.5 w-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={searchFilters[a.class_id] ?? ""}
+                    onChange={(e) => setSearchFilters((p) => ({ ...p, [a.class_id]: e.target.value }))}
+                    placeholder="Search name, email, reg no"
+                    className="h-8 text-xs pl-7 w-[240px]"
+                  />
                 </div>
-              )}
+                {classSections.length > 0 && (
+                  <>
+                    <span className="text-xs text-muted-foreground ml-2">Section:</span>
+                    <Select value={sectionFilter} onValueChange={(v) => setSectionFilters((p) => ({ ...p, [a.class_id]: v }))}>
+                      <SelectTrigger className="w-[180px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All sections</SelectItem>
+                        {classSections.map((sec: any) => (
+                          <SelectItem key={sec.id} value={sec.id}>{sec.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </>
+                )}
+              </div>
               <Card>
                 <CardContent className="p-0">
                   <table className="w-full text-sm">
