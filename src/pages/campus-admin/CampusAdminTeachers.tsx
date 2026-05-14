@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus } from "lucide-react";
+import { Plus, Pencil, X, KeyRound, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface Assn { classId: string; className: string; sectionId: string | null; sectionName: string | null; }
