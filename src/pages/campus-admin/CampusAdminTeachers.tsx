@@ -13,7 +13,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Pencil, X, KeyRound, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-interface Assn { classId: string; className: string; sectionId: string | null; sectionName: string | null; }
+interface Assn {
+  classId: string;
+  className: string;
+  sectionId: string | null;
+  sectionName: string | null;
+}
 
 function AddTeacherForCampus({ campusId }: { campusId: string }) {
   const [open, setOpen] = useState(false);
@@ -53,8 +58,12 @@ function AddTeacherForCampus({ campusId }: { campusId: string }) {
     const cls = classes?.find((c) => c.id === classId);
     const sec = sectionsList?.find((s) => s.id === sectionId);
     if (cls) {
-      setAssignments([...assignments, { classId: cls.id, className: cls.name, sectionId: sec?.id ?? null, sectionName: sec?.name ?? null }]);
-      setClassId(""); setSectionId("");
+      setAssignments([
+        ...assignments,
+        { classId: cls.id, className: cls.name, sectionId: sec?.id ?? null, sectionName: sec?.name ?? null },
+      ]);
+      setClassId("");
+      setSectionId("");
     }
   };
 
@@ -67,11 +76,19 @@ function AddTeacherForCampus({ campusId }: { campusId: string }) {
     if (classId && !finals.some((a) => `${a.classId}::${a.sectionId || "all"}` === key)) {
       const cls = classes?.find((c) => c.id === classId);
       const sec = sectionsList?.find((s) => s.id === sectionId);
-      if (cls) finals.push({ classId: cls.id, className: cls.name, sectionId: sec?.id ?? null, sectionName: sec?.name ?? null });
+      if (cls)
+        finals.push({
+          classId: cls.id,
+          className: cls.name,
+          sectionId: sec?.id ?? null,
+          sectionName: sec?.name ?? null,
+        });
     }
     const { data, error } = await supabase.functions.invoke("invite-teacher", {
       body: {
-        name, email, password,
+        name,
+        email,
+        password,
         campus_id: campusId,
         class_assignments: finals.map((a) => ({ class_id: a.classId, section_id: a.sectionId })),
       },
@@ -81,38 +98,83 @@ function AddTeacherForCampus({ campusId }: { campusId: string }) {
     toast.success("Teacher created");
     queryClient.invalidateQueries({ queryKey: ["ca-teachers"] });
     queryClient.invalidateQueries({ queryKey: ["ca-teacher-assignments"] });
-    setName(""); setEmail(""); setPassword(""); setAssignments([]); setClassId(""); setSectionId("");
+    setName("");
+    setEmail("");
+    setPassword("");
+    setAssignments([]);
+    setClassId("");
+    setSectionId("");
     setOpen(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button><Plus className="h-4 w-4 mr-2" /> Add Teacher</Button>
+        <Button>
+          <Plus className="h-4 w-4 mr-2" /> Add Teacher
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>Add Teacher</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Add Teacher</DialogTitle>
+        </DialogHeader>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            <div><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
-            <div><Label>Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+            <div>
+              <Label>Name</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+            <div>
+              <Label>Email</Label>
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            </div>
           </div>
-          <div><Label>Password</Label><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min 6 characters" /></div>
+          <div>
+            <Label>Password</Label>
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Min 6 characters"
+            />
+          </div>
           <div className="border rounded-lg p-3 space-y-3">
             <p className="text-sm font-medium">Assign Classes</p>
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-xs">Class</Label>
-                <Select value={classId} onValueChange={(v) => { setClassId(v); setSectionId(""); }}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder="Class" /></SelectTrigger>
-                  <SelectContent>{classes?.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                <Select
+                  value={classId}
+                  onValueChange={(v) => {
+                    setClassId(v);
+                    setSectionId("");
+                  }}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Class" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classes?.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
               <div>
                 <Label className="text-xs">Section (optional)</Label>
                 <Select value={sectionId} onValueChange={setSectionId} disabled={!classId || !sectionsList?.length}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder={sectionsList?.length ? "All sections" : "No sections"} /></SelectTrigger>
-                  <SelectContent>{sectionsList?.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder={sectionsList?.length ? "All sections" : "No sections"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sectionsList?.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
             </div>
@@ -124,9 +186,16 @@ function AddTeacherForCampus({ campusId }: { campusId: string }) {
                 {assignments.map((a) => {
                   const k = `${a.classId}::${a.sectionId || "all"}`;
                   return (
-                    <Badge key={k} variant="secondary" className="text-xs cursor-pointer"
-                      onClick={() => setAssignments(assignments.filter((x) => `${x.classId}::${x.sectionId || "all"}` !== k))}>
-                      {a.className}{a.sectionName ? ` · ${a.sectionName}` : " · All sections"} ✕
+                    <Badge
+                      key={k}
+                      variant="secondary"
+                      className="text-xs cursor-pointer"
+                      onClick={() =>
+                        setAssignments(assignments.filter((x) => `${x.classId}::${x.sectionId || "all"}` !== k))
+                      }
+                    >
+                      {a.className}
+                      {a.sectionName ? ` · ${a.sectionName}` : " · All sections"} ✕
                     </Badge>
                   );
                 })}
@@ -182,14 +251,19 @@ function EditTeacherDialog({ teacher, campusId }: { teacher: any; campusId: stri
 
   const addAssignment = async () => {
     if (!classId) return;
-    const dup = (assignments ?? []).some((a: any) => a.class_id === classId && (a.section_id ?? null) === (sectionId || null));
+    const dup = (assignments ?? []).some(
+      (a: any) => a.class_id === classId && (a.section_id ?? null) === (sectionId || null),
+    );
     if (dup) return toast.error("Already assigned");
     const { error } = await supabase.from("teacher_class_assignments").insert({
-      teacher_id: teacher.id, class_id: classId, section_id: sectionId || null,
+      teacher_id: teacher.id,
+      class_id: classId,
+      section_id: sectionId || null,
     });
     if (error) return toast.error(error.message);
     toast.success("Assignment added");
-    setClassId(""); setSectionId("");
+    setClassId("");
+    setSectionId("");
     refetch();
     queryClient.invalidateQueries({ queryKey: ["ca-teacher-assignments"] });
   };
@@ -216,7 +290,12 @@ function EditTeacherDialog({ teacher, campusId }: { teacher: any; campusId: stri
   };
 
   const deleteTeacher = async () => {
-    if (!confirm(`Delete teacher ${teacher.name}? This removes their class assignments and teacher record (auth user remains).`)) return;
+    if (
+      !confirm(
+        `Delete teacher ${teacher.name}? This removes their class assignments and teacher record (auth user remains).`,
+      )
+    )
+      return;
     await supabase.from("teacher_class_assignments").delete().eq("teacher_id", teacher.id);
     const { error } = await supabase.from("teachers").delete().eq("id", teacher.id);
     if (error) return toast.error(error.message);
@@ -229,50 +308,86 @@ function EditTeacherDialog({ teacher, campusId }: { teacher: any; campusId: stri
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm"><Pencil className="h-3.5 w-3.5 mr-1" /> Edit</Button>
+        <Button variant="outline" size="sm">
+          <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>Edit Teacher — {teacher.name}</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Edit Teacher — {teacher.name}</DialogTitle>
+        </DialogHeader>
         <div className="space-y-4">
           <div className="border rounded-lg p-3 space-y-3">
             <p className="text-sm font-medium">Class & Section Assignments</p>
             <div className="flex flex-wrap gap-1.5 min-h-[28px]">
               {(assignments ?? []).length === 0 ? (
                 <span className="text-xs text-muted-foreground">No assignments yet</span>
-              ) : (assignments ?? []).map((a: any) => (
-                <Badge key={a.id} variant="secondary" className="text-xs gap-1">
-                  {a.classes?.name}{a.sections?.name ? ` · ${a.sections.name}` : " · All sections"}
-                  <button onClick={() => removeAssignment(a.id)} className="ml-1 hover:text-destructive">
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              ))}
+              ) : (
+                (assignments ?? []).map((a: any) => (
+                  <Badge key={a.id} variant="secondary" className="text-xs gap-1">
+                    {a.classes?.name}
+                    {a.sections?.name ? ` · ${a.sections.name}` : " · All sections"}
+                    <button onClick={() => removeAssignment(a.id)} className="ml-1 hover:text-destructive">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))
+              )}
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-xs">Class</Label>
-                <Select value={classId} onValueChange={(v) => { setClassId(v); setSectionId(""); }}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder="Class" /></SelectTrigger>
-                  <SelectContent>{classes?.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                <Select
+                  value={classId}
+                  onValueChange={(v) => {
+                    setClassId(v);
+                    setSectionId("");
+                  }}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Class" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classes?.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
               <div>
                 <Label className="text-xs">Section (optional)</Label>
                 <Select value={sectionId} onValueChange={setSectionId} disabled={!classId || !sectionsList?.length}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder={sectionsList?.length ? "All sections" : "No sections"} /></SelectTrigger>
-                  <SelectContent>{sectionsList?.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder={sectionsList?.length ? "All sections" : "No sections"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sectionsList?.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
             </div>
             <Button type="button" variant="outline" size="sm" onClick={addAssignment} disabled={!classId}>
-              <Plus className="h-3.5 w-3.5 mr-1" /> Add Assignment
+              <Plus className="h-3.5 w-3.5 mr-1" /> Assign Class / Section
             </Button>
           </div>
 
           <div className="border rounded-lg p-3 space-y-2">
-            <p className="text-sm font-medium flex items-center gap-1.5"><KeyRound className="h-4 w-4" /> Change Password</p>
+            <p className="text-sm font-medium flex items-center gap-1.5">
+              <KeyRound className="h-4 w-4" /> Change Password
+            </p>
             <div className="flex gap-2">
-              <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="New password (min 6 chars)" />
+              <Input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="New password (min 6 chars)"
+              />
               <Button onClick={resetPassword} disabled={savingPw || newPassword.length < 6}>
                 {savingPw ? "Saving..." : "Update"}
               </Button>
@@ -304,7 +419,11 @@ export default function CampusAdminTeachers() {
   const { data: teachers } = useQuery({
     queryKey: ["ca-teachers", campusId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("teachers").select("*").eq("campus_id", campusId).order("created_at", { ascending: false });
+      const { data, error } = await supabase
+        .from("teachers")
+        .select("*")
+        .eq("campus_id", campusId)
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -337,7 +456,9 @@ export default function CampusAdminTeachers() {
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="text-base">All Teachers</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base">All Teachers</CardTitle>
+        </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
@@ -350,29 +471,39 @@ export default function CampusAdminTeachers() {
             </TableHeader>
             <TableBody>
               {(teachers ?? []).length === 0 ? (
-                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">No teachers yet</TableCell></TableRow>
-              ) : teachers!.map((t) => {
-                const ta = (assignments ?? []).filter((a: any) => a.teacher_id === t.id);
-                return (
-                  <TableRow key={t.id}>
-                    <TableCell className="font-medium">{t.name}</TableCell>
-                    <TableCell className="text-muted-foreground">{t.email}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1.5">
-                        {ta.length === 0 ? <span className="text-xs text-muted-foreground">None</span> :
-                          ta.map((a: any) => (
-                            <Badge key={a.id} variant="secondary" className="text-xs">
-                              {a.classes?.name}{a.sections?.name ? ` · ${a.sections.name}` : " · All"}
-                            </Badge>
-                          ))}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {campusId && <EditTeacherDialog teacher={t} campusId={campusId} />}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
+                    No teachers yet
+                  </TableCell>
+                </TableRow>
+              ) : (
+                teachers!.map((t) => {
+                  const ta = (assignments ?? []).filter((a: any) => a.teacher_id === t.id);
+                  return (
+                    <TableRow key={t.id}>
+                      <TableCell className="font-medium">{t.name}</TableCell>
+                      <TableCell className="text-muted-foreground">{t.email}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1.5">
+                          {ta.length === 0 ? (
+                            <span className="text-xs text-muted-foreground">None</span>
+                          ) : (
+                            ta.map((a: any) => (
+                              <Badge key={a.id} variant="secondary" className="text-xs">
+                                {a.classes?.name}
+                                {a.sections?.name ? ` · ${a.sections.name}` : " · All"}
+                              </Badge>
+                            ))
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {campusId && <EditTeacherDialog teacher={t} campusId={campusId} />}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </CardContent>
