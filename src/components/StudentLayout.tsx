@@ -1,6 +1,6 @@
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { BookOpen, LayoutDashboard } from "lucide-react";
+import { BookOpen, LayoutDashboard, GraduationCap } from "lucide-react";
 import brandLogo from "@/assets/superior-logo.png";
 import UserMenu from "@/components/UserMenu";
 
