@@ -16,7 +16,7 @@ interface FileUploadFieldProps {
 }
 
 export default function FileUploadField({
-  value, onChange, bucket, accept, kind, label, maxSizeMB = 10,
+  value, onChange, bucket, accept, kind, label, maxSizeMB = 10, buttonLabel,
 }: FileUploadFieldProps) {
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
