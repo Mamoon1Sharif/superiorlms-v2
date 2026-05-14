@@ -345,11 +345,12 @@ export default function CampusAdminTeachers() {
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Assigned Classes / Sections</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {(teachers ?? []).length === 0 ? (
-                <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-6">No teachers yet</TableCell></TableRow>
+                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">No teachers yet</TableCell></TableRow>
               ) : teachers!.map((t) => {
                 const ta = (assignments ?? []).filter((a: any) => a.teacher_id === t.id);
                 return (
