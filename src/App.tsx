@@ -65,6 +65,7 @@ const App = () => (
               <Route path="/courses" element={<Courses />} />
               <Route path="/courses/create" element={<CreateCourse />} />
               <Route path="/courses/edit/:id" element={<EditCourse />} />
+              <Route path="/courses/capstone" element={<CapstoneSettings />} />
               <Route path="/users" element={<UsersPage />} />
               <Route path="/campuses" element={<Campuses />} />
               <Route path="/institute" element={<InstituteManagement />} />
