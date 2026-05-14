@@ -9,13 +9,14 @@ interface FileUploadFieldProps {
   onChange: (url: string | null) => void;
   bucket: string;
   accept: string;
-  kind: "image" | "pdf";
+  kind: "image" | "pdf" | "document";
   label?: string;
   maxSizeMB?: number;
+  buttonLabel?: string;
 }
 
 export default function FileUploadField({
-  value, onChange, bucket, accept, kind, label, maxSizeMB = 10,
+  value, onChange, bucket, accept, kind, label, maxSizeMB = 10, buttonLabel,
 }: FileUploadFieldProps) {
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -35,7 +36,7 @@ export default function FileUploadField({
       if (error) throw error;
       const { data } = supabase.storage.from(bucket).getPublicUrl(fileName);
       onChange(data.publicUrl);
-      toast.success(`${kind === "image" ? "Thumbnail" : "PDF"} uploaded`);
+      toast.success(`${kind === "image" ? "Thumbnail" : kind === "pdf" ? "PDF" : "File"} uploaded`);
     } catch (err: any) {
       toast.error(err.message || "Upload failed");
     } finally {
@@ -97,7 +98,7 @@ export default function FileUploadField({
           ) : kind === "image" ? (
             <><ImageIcon className="h-3.5 w-3.5 mr-1.5" /> Upload Thumbnail</>
           ) : (
-            <><Upload className="h-3.5 w-3.5 mr-1.5" /> Upload PDF</>
+            <><Upload className="h-3.5 w-3.5 mr-1.5" /> {buttonLabel ?? (kind === "pdf" ? "Upload PDF" : "Upload File")}</>
           )}
         </Button>
       )}
