@@ -86,6 +86,42 @@ export default function TeacherGrading() {
     enabled: (submissions?.length ?? 0) > 0,
   });
 
+  // Capstone submissions for my students
+  const { data: capstoneSubs, refetch: refetchCapstone } = useQuery({
+    queryKey: ["capstone-subs", myStudentIds],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("capstone_submissions").select("*").in("student_id", myStudentIds).order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: myStudentIds.length > 0,
+  });
+
+  const [capstoneReview, setCapstoneReview] = useState<any>(null);
+  const [capGrade, setCapGrade] = useState("");
+  const [capComments, setCapComments] = useState("");
+  const [capStatus, setCapStatus] = useState<"Approved" | "Rejected">("Approved");
+
+  const reviewCapstone = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("capstone_submissions").update({
+        grade: capGrade ? parseInt(capGrade) : null,
+        grading_comments: capComments,
+        status: capStatus,
+        graded: true,
+        graded_by: user?.id ?? null,
+        graded_at: new Date().toISOString(),
+      }).eq("id", capstoneReview.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Capstone reviewed");
+      setCapstoneReview(null); setCapGrade(""); setCapComments(""); setCapStatus("Approved");
+      refetchCapstone();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   const gradeSubmission = useMutation({
     mutationFn: async () => {
       const { error } = await supabase
