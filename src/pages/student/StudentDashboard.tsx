@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Clock, CheckCircle2, ImageIcon, Award, AlertCircle, Lock } from "lucide-react";
+import { BookOpen, Clock, CheckCircle2, ImageIcon, Award, AlertCircle, Lock, GraduationCap } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { getCourseCompletions } from "@/lib/courseProgress";
@@ -64,6 +64,26 @@ export default function StudentDashboard() {
     queryFn: async () => getCourseCompletions(student!.id, (campusCourses ?? []).map((c: any) => c.id)),
     enabled: !!student && !!campusCourses?.length,
   });
+
+  const { data: capstoneSettings } = useQuery({
+    queryKey: ["capstone-settings-public"],
+    queryFn: async () => {
+      const { data } = await supabase.from("capstone_settings").select("*").eq("id", true).maybeSingle();
+      return data;
+    },
+  });
+
+  const { data: capstoneSubmission } = useQuery({
+    queryKey: ["my-capstone", student?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("capstone_submissions").select("status, graded, grade").eq("student_id", student!.id).maybeSingle();
+      return data;
+    },
+    enabled: !!student,
+  });
+
+  const allCoursesDone = !!campusCourses?.length && campusCourses.every((c: any) => completions?.[c.id]?.isComplete);
+  const showCapstone = capstoneSettings?.is_published && allCoursesDone;
 
   const applyToProgram = async () => {
     if (!student) return;
@@ -217,6 +237,34 @@ export default function StudentDashboard() {
             </div>
           )}
         </div>
+      )}
+
+      {fullyApproved && showCapstone && (
+        <Card className="overflow-hidden border-primary/30">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-center p-5">
+            <div className="flex items-start gap-4">
+              <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <GraduationCap className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <CardTitle className="text-lg">{capstoneSettings?.title || "Final Capstone Project"}</CardTitle>
+                  {capstoneSubmission && (
+                    <Badge variant={capstoneSubmission.status === "Approved" ? "default" : capstoneSubmission.status === "Rejected" ? "destructive" : "secondary"}>
+                      {capstoneSubmission.status}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  You've completed all your courses. Submit your final capstone project to wrap up the program.
+                </p>
+              </div>
+            </div>
+            <Link to="/student/capstone">
+              <Button>{capstoneSubmission ? "View Submission" : "Start Capstone"}</Button>
+            </Link>
+          </div>
+        </Card>
       )}
     </div>
   );

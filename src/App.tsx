@@ -27,6 +27,8 @@ import StudentRegister from "@/pages/student/StudentRegister";
 import StudentDashboard from "@/pages/student/StudentDashboard";
 import StudentCatalog from "@/pages/student/StudentCatalog";
 import StudentCourseView from "@/pages/student/StudentCourseView";
+import StudentCapstone from "@/pages/student/StudentCapstone";
+import CapstoneSettings from "@/pages/CapstoneSettings";
 import TeacherDashboard from "@/pages/teacher/TeacherDashboard";
 import TeacherStudents from "@/pages/teacher/TeacherStudents";
 import TeacherGrading from "@/pages/teacher/TeacherGrading";
@@ -63,6 +65,7 @@ const App = () => (
               <Route path="/courses" element={<Courses />} />
               <Route path="/courses/create" element={<CreateCourse />} />
               <Route path="/courses/edit/:id" element={<EditCourse />} />
+              <Route path="/courses/capstone" element={<CapstoneSettings />} />
               <Route path="/users" element={<UsersPage />} />
               <Route path="/campuses" element={<Campuses />} />
               <Route path="/institute" element={<InstituteManagement />} />
@@ -93,6 +96,7 @@ const App = () => (
               <Route path="/student" element={<StudentDashboard />} />
               <Route path="/student/catalog" element={<StudentCatalog />} />
               <Route path="/student/course/:courseId" element={<StudentCourseView />} />
+              <Route path="/student/capstone" element={<StudentCapstone />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />

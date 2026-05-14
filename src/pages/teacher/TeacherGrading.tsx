@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, FileText, ExternalLink } from "lucide-react";
+import { CheckCircle2, FileText, ExternalLink, GraduationCap, Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
 
 export default function TeacherGrading() {
@@ -84,6 +84,42 @@ export default function TeacherGrading() {
       return data;
     },
     enabled: (submissions?.length ?? 0) > 0,
+  });
+
+  // Capstone submissions for my students
+  const { data: capstoneSubs, refetch: refetchCapstone } = useQuery({
+    queryKey: ["capstone-subs", myStudentIds],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("capstone_submissions").select("*").in("student_id", myStudentIds).order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: myStudentIds.length > 0,
+  });
+
+  const [capstoneReview, setCapstoneReview] = useState<any>(null);
+  const [capGrade, setCapGrade] = useState("");
+  const [capComments, setCapComments] = useState("");
+  const [capStatus, setCapStatus] = useState<"Approved" | "Rejected">("Approved");
+
+  const reviewCapstone = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("capstone_submissions").update({
+        grade: capGrade ? parseInt(capGrade) : null,
+        grading_comments: capComments,
+        status: capStatus,
+        graded: true,
+        graded_by: user?.id ?? null,
+        graded_at: new Date().toISOString(),
+      }).eq("id", capstoneReview.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Capstone reviewed");
+      setCapstoneReview(null); setCapGrade(""); setCapComments(""); setCapStatus("Approved");
+      refetchCapstone();
+    },
+    onError: (e: any) => toast.error(e.message),
   });
 
   const gradeSubmission = useMutation({
@@ -208,6 +244,52 @@ export default function TeacherGrading() {
         </Card>
       </div>
 
+      {/* Capstone reviews */}
+      <div>
+        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+          <GraduationCap className="h-4 w-4 text-primary" /> Capstone Submissions ({capstoneSubs?.length ?? 0})
+        </h3>
+        {(capstoneSubs?.length ?? 0) === 0 ? (
+          <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">No capstone submissions yet</CardContent></Card>
+        ) : (
+          <div className="space-y-2">
+            {capstoneSubs!.map((s: any) => (
+              <Card key={s.id}>
+                <CardContent className="p-4 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Avatar className="h-9 w-9 shrink-0">
+                      <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                        {getStudentName(s.student_id).split(" ").map((n: string) => n[0]).join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm">{getStudentName(s.student_id)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {(s.profile_links?.length ?? 0)} link(s) · {(s.files?.length ?? 0)} file(s)
+                        {s.description && " · has description"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge variant={s.status === "Approved" ? "default" : s.status === "Rejected" ? "destructive" : "secondary"}>
+                      {s.status}
+                    </Badge>
+                    <Button size="sm" variant={s.graded ? "outline" : "default"} onClick={() => {
+                      setCapstoneReview(s);
+                      setCapGrade(s.grade?.toString() ?? "");
+                      setCapComments(s.grading_comments ?? "");
+                      setCapStatus(s.status === "Rejected" ? "Rejected" : "Approved");
+                    }}>
+                      {s.graded ? "Re-review" : "Review"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+
       <Dialog open={!!gradingSubmission} onOpenChange={(v) => { if (!v) setGradingSubmission(null); }}>
         <DialogContent>
           <DialogHeader>
@@ -236,6 +318,89 @@ export default function TeacherGrading() {
               </div>
               <Button className="w-full" onClick={() => gradeSubmission.mutate()} disabled={!grade || gradeSubmission.isPending}>
                 Submit Grade
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Capstone review dialog */}
+      <Dialog open={!!capstoneReview} onOpenChange={(v) => { if (!v) setCapstoneReview(null); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Review Capstone Submission</DialogTitle>
+          </DialogHeader>
+          {capstoneReview && (
+            <div className="space-y-4">
+              <p className="text-sm font-medium">{getStudentName(capstoneReview.student_id)}</p>
+
+              {(capstoneReview.profile_links?.length ?? 0) > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground mb-1.5">Profile / Portfolio Links</p>
+                  <div className="space-y-1">
+                    {capstoneReview.profile_links.map((url: string, i: number) => (
+                      <a key={i} href={url} target="_blank" rel="noreferrer" className="text-xs text-primary flex items-center gap-1 underline">
+                        <LinkIcon className="h-3 w-3" /> {url}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(capstoneReview.files?.filter((f: any) => f.kind === "submission")?.length ?? 0) > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground mb-1.5">Project Files</p>
+                  <div className="space-y-1">
+                    {capstoneReview.files.filter((f: any) => f.kind === "submission").map((f: any, i: number) => (
+                      <a key={i} href={f.url} target="_blank" rel="noreferrer" className="text-xs text-primary flex items-center gap-1 underline">
+                        <FileText className="h-3 w-3" /> {f.name}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(capstoneReview.files?.filter((f: any) => f.kind === "earnings")?.length ?? 0) > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground mb-1.5">Proof of Earnings</p>
+                  <div className="space-y-1">
+                    {capstoneReview.files.filter((f: any) => f.kind === "earnings").map((f: any, i: number) => (
+                      <a key={i} href={f.url} target="_blank" rel="noreferrer" className="text-xs text-primary flex items-center gap-1 underline">
+                        <FileText className="h-3 w-3" /> {f.name}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {capstoneReview.description && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground mb-1.5">Description</p>
+                  <p className="text-sm whitespace-pre-wrap p-3 rounded-md bg-muted/40">{capstoneReview.description}</p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Decision</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Button type="button" size="sm" variant={capStatus === "Approved" ? "default" : "outline"} onClick={() => setCapStatus("Approved")}>Approve</Button>
+                    <Button type="button" size="sm" variant={capStatus === "Rejected" ? "destructive" : "outline"} onClick={() => setCapStatus("Rejected")}>Reject</Button>
+                  </div>
+                </div>
+                <div>
+                  <Label>Grade (out of 100, optional)</Label>
+                  <Input type="number" min={0} max={100} value={capGrade} onChange={(e) => setCapGrade(e.target.value)} />
+                </div>
+              </div>
+
+              <div>
+                <Label>Comments</Label>
+                <Textarea value={capComments} onChange={(e) => setCapComments(e.target.value)} rows={3} placeholder="Feedback for the student..." />
+              </div>
+
+              <Button className="w-full" onClick={() => reviewCapstone.mutate()} disabled={reviewCapstone.isPending}>
+                {reviewCapstone.isPending ? "Saving..." : "Submit Review"}
               </Button>
             </div>
           )}
