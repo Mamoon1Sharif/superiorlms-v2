@@ -96,6 +96,7 @@ const App = () => (
               <Route path="/student" element={<StudentDashboard />} />
               <Route path="/student/catalog" element={<StudentCatalog />} />
               <Route path="/student/course/:courseId" element={<StudentCourseView />} />
+              <Route path="/student/capstone" element={<StudentCapstone />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />
