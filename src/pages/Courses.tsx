@@ -90,9 +90,14 @@ export default function Courses() {
           <h1 className="text-2xl font-bold tracking-tight">Courses</h1>
           <p className="text-muted-foreground text-sm mt-1">Manage your course catalog</p>
         </div>
-        <Button onClick={() => navigate("/courses/create")}>
-          <Plus className="h-4 w-4 mr-2" /> Create Course
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => navigate("/courses/capstone")}>
+            <GraduationCap className="h-4 w-4 mr-2" /> Capstone Settings
+          </Button>
+          <Button onClick={() => navigate("/courses/create")}>
+            <Plus className="h-4 w-4 mr-2" /> Create Course
+          </Button>
+        </div>
       </div>
 
       <div className="relative max-w-sm">
