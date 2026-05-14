@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Clock, CheckCircle2, ImageIcon, Award, AlertCircle, Lock } from "lucide-react";
+import { BookOpen, Clock, CheckCircle2, ImageIcon, Award, AlertCircle, Lock, GraduationCap } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { getCourseCompletions } from "@/lib/courseProgress";
