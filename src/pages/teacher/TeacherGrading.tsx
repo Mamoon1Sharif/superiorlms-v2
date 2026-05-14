@@ -244,6 +244,52 @@ export default function TeacherGrading() {
         </Card>
       </div>
 
+      {/* Capstone reviews */}
+      <div>
+        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+          <GraduationCap className="h-4 w-4 text-primary" /> Capstone Submissions ({capstoneSubs?.length ?? 0})
+        </h3>
+        {(capstoneSubs?.length ?? 0) === 0 ? (
+          <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">No capstone submissions yet</CardContent></Card>
+        ) : (
+          <div className="space-y-2">
+            {capstoneSubs!.map((s: any) => (
+              <Card key={s.id}>
+                <CardContent className="p-4 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Avatar className="h-9 w-9 shrink-0">
+                      <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                        {getStudentName(s.student_id).split(" ").map((n: string) => n[0]).join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm">{getStudentName(s.student_id)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {(s.profile_links?.length ?? 0)} link(s) · {(s.files?.length ?? 0)} file(s)
+                        {s.description && " · has description"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge variant={s.status === "Approved" ? "default" : s.status === "Rejected" ? "destructive" : "secondary"}>
+                      {s.status}
+                    </Badge>
+                    <Button size="sm" variant={s.graded ? "outline" : "default"} onClick={() => {
+                      setCapstoneReview(s);
+                      setCapGrade(s.grade?.toString() ?? "");
+                      setCapComments(s.grading_comments ?? "");
+                      setCapStatus(s.status === "Rejected" ? "Rejected" : "Approved");
+                    }}>
+                      {s.graded ? "Re-review" : "Review"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+
       <Dialog open={!!gradingSubmission} onOpenChange={(v) => { if (!v) setGradingSubmission(null); }}>
         <DialogContent>
           <DialogHeader>
